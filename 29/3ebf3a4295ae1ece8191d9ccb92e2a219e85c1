@@ -1,0 +1,29 @@
+public/js/main.js
+  s_896e0e381cf026::t_e66732683a6388 83
+  s_896e0e381cf026::t_579dda782f0d39 136-141,144-146,150-157
+public/js/i18n.js
+  s_896e0e381cf026::t_9f6cc579d436fd 50
+  s_896e0e381cf026::t_230f7c460829a4 290
+public/index.html
+  s_896e0e381cf026::t_8b13e529df29ff 90-94
+public/js/traffic.js
+  s_896e0e381cf026::t_bc987bf2dc555d 35-37,49-57
+  s_896e0e381cf026::t_9b6a1cb3dbe280 406,411,413-417
+  s_896e0e381cf026::t_acd1b039f75fc0 446
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "293ebf3a4295ae1ece8191d9ccb92e2a219e85c1",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
