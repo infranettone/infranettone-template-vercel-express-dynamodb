@@ -1,9 +1,9 @@
 # vedtemplate — Infranettone
-# Todo el contenido es indexable. Sitemap listado abajo.
+# All content is indexable. Sitemap listed below.
 User-agent: *
 Allow: /
 
-# El endpoint de tracking no aporta nada a los buscadores.
+# The tracking endpoints add nothing for search engines.
 Disallow: /api/
 
 Sitemap: https://vedtemplate.infranettone.com/sitemap.xml

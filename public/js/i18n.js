@@ -1,9 +1,9 @@
-// Traducciones del showcase. El inglés vive en el propio index.html (idioma
-// por defecto); aquí solo están ES y CA (mallorquí). Al cambiar de idioma,
-// main.js guarda el innerHTML original (EN) y lo restaura si se vuelve a EN.
+// Showcase translations. English lives in index.html itself (the default
+// language); only ES and CA (Mallorcan) are here. On language change, main.js
+// saves the original innerHTML (EN) and restores it if switching back to EN.
 //
-// Los diagramas Mermaid se quedan en inglés en todos los idiomas (términos
-// técnicos, y re-renderizarlos por idioma no aporta).
+// Mermaid diagrams stay in English across all languages (technical terms, and
+// re-rendering them per language adds nothing).
 
 export const LANGS = {
   en: { name: 'English', flag: flagUK() },
@@ -11,7 +11,7 @@ export const LANGS = {
   ca: { name: 'Mallorquí', flag: flagMallorca() },
 };
 
-// Banderas SVG inline (no existe emoji de la bandera de Mallorca).
+// Inline SVG flags (there is no emoji for the flag of Mallorca).
 function flagUK() {
   return `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
     <rect width="60" height="36" fill="#012169"/>
@@ -28,7 +28,7 @@ function flagES() {
   </svg>`;
 }
 function flagMallorca() {
-  // Senyera con franja morada y castillo blanco (simplificado).
+  // Senyera with a purple stripe and a white castle (simplified).
   return `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
     <rect width="60" height="36" fill="#FCDD09"/>
     <rect y="4" width="60" height="4" fill="#DA121A"/>
@@ -201,7 +201,7 @@ npm run seed</pre>
 
     'footer.p': 'vedtemplate · Express · DynamoDB · Vercel · GitHub Actions',
 
-    // Cadenas generadas desde JS
+    // Strings generated from JS
     'js.badge.dynamo': '● Persistencia: DynamoDB ({table} · {region})',
     'js.badge.memory': '● Persistencia: memoria (sin credenciales AWS)',
     'js.stat.mode': 'Modo de almacenamiento',
@@ -460,13 +460,13 @@ npm run seed</pre>
   },
 };
 
-// Helper compartido por main.js y traffic.js: devuelve la traducción de `key`
-// para `lang`, cayendo a las cadenas por defecto en inglés.
+// Shared helper for main.js and traffic.js: returns the translation of `key`
+// for `lang`, falling back to the default English strings.
 export function tr(lang, key) {
   return (translations[lang] && translations[lang][key]) || jsDefaults[key] || key;
 }
 
-// Cadenas JS por defecto (inglés).
+// Default JS strings (English).
 export const jsDefaults = {
   'js.badge.dynamo': '● Persistence: DynamoDB ({table} · {region})',
   'js.badge.memory': '● Persistence: memory (no AWS credentials)',

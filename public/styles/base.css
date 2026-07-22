@@ -23,7 +23,7 @@ body {
 header { padding: 2rem 1.5rem 1rem; max-width: 1000px; margin: 0 auto; }
 .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 
-/* Selector de idioma */
+/* Language switcher */
 #lang-switcher { position: relative; flex-shrink: 0; }
 .lang-btn {
   display: flex; align-items: center; gap: .5rem;
@@ -135,7 +135,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 .footer-author a { color: var(--accent); text-decoration: none; }
 .footer-author a:hover { text-decoration: underline; }
 
-/* ═══════════════ Dashboard de tráfico ═══════════════ */
+/* ═══════════════ Traffic dashboard ═══════════════ */
 .traffic-toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0; }
 .tr-you { color: var(--ok); font-size: .85rem; font-family: ui-monospace, monospace; }
 .privacy-note {
@@ -152,7 +152,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 .tr-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
 .tr-cols .card h3 { margin-top: 0; }
 
-/* Gráfico SVG */
+/* SVG chart */
 .viz { width: 100%; height: auto; }
 .viz-scroll { overflow-x: auto; }
 .viz .grid { stroke: var(--border); stroke-width: 1; }
@@ -161,7 +161,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 .legend { display: flex; gap: 1rem; font-size: .82rem; color: var(--muted); margin-bottom: .4rem; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .35rem; vertical-align: middle; }
 
-/* Barras horizontales */
+/* Horizontal bars */
 .hbars { display: flex; flex-direction: column; gap: .35rem; }
 .hbar-row { display: grid; grid-template-columns: 90px 1fr 34px; gap: .5rem; align-items: center; font-size: .82rem; }
 .hbar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -177,7 +177,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 }
 .viz-tip.hidden { display: none; }
 
-/* Feed / tablas de tráfico */
+/* Feed / traffic tables */
 table.feed { width: 100%; border-collapse: collapse; font-size: .8rem; }
 table.feed th, table.feed td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 table.feed th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }

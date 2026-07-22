@@ -1,12 +1,12 @@
-// CRUD de "registros" de demostración.
+// CRUD for demo "records".
 //
-// Con DynamoDB habilitado, cada registro se guarda como:
-//   pk = "ITEM"            (partición única: volumen bajo, consulta simple)
-//   sk = "<isoDate>#<id>"  (orden cronológico natural al hacer Query)
+// With DynamoDB enabled, each record is stored as:
+//   pk = "ITEM"            (single partition: low volume, simple query)
+//   sk = "<isoDate>#<id>"  (natural chronological order on Query)
 //
-// Sin credenciales, los registros viven en un array en memoria del proceso.
-// En Vercel eso significa que sobreviven mientras viva la lambda: suficiente
-// para la demo, y el panel de estado deja claro qué modo está activo.
+// Without credentials, records live in an in-process memory array. On Vercel
+// that means they survive as long as the lambda lives: enough for the demo, and
+// the status panel makes clear which mode is active.
 
 const crypto = require('crypto');
 const { QueryCommand, PutCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
@@ -37,7 +37,7 @@ async function listItems() {
 
 async function createItem(text) {
   if (typeof text !== 'string' || !text.trim()) {
-    const err = new Error('text es obligatorio');
+    const err = new Error('text is required');
     err.status = 400;
     throw err;
   }
@@ -60,7 +60,7 @@ async function deleteItem(id) {
     memoryStore.splice(idx, 1);
     return true;
   }
-  // Recuperamos el sk buscando el id (100 items máximo: aceptable en demo).
+  // Recover the sk by looking up the id (100 items max: acceptable for the demo).
   const items = await getDocClient().send(new QueryCommand({
     TableName: TABLE_NAME,
     KeyConditionExpression: 'pk = :pk',

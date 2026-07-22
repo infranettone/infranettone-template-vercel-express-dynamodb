@@ -1,7 +1,7 @@
 {
   "name": "vedtemplate",
   "version": "1.0.0",
-  "description": "Plantilla productiva: Express + frontend estático + DynamoDB (AWS) desplegada gratis en Vercel, con showcase de arquitectura integrado.",
+  "description": "Production-ready template: Express + static frontend + DynamoDB (AWS) deployed free on Vercel, with a built-in architecture showcase and traffic-monitoring dashboard.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

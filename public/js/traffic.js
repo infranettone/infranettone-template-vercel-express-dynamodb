@@ -1,9 +1,9 @@
-// Dashboard de tráfico: KPIs, serie temporal humano/bot, tops geográficos y
-// técnicos, feed de accesos en vivo (redactado) y explorador de visitantes.
+// Traffic dashboard: KPIs, human/bot time series, geographic and technical
+// tops, live access feed (redacted) and visitor explorer.
 //
-// Gráficos como SVG inline (sin librerías): paleta categórica validada, marcas
-// finas con extremos redondeados, separación de 2px entre segmentos apilados,
-// leyenda + etiquetas directas y tooltip al pasar el ratón.
+// Charts as inline SVG (no libraries): validated categorical palette, thin
+// marks with rounded ends, a 2px gap between stacked segments, legend + direct
+// labels and a tooltip on hover.
 
 import { tr } from './i18n.js';
 
@@ -11,10 +11,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const lang = () => window.__lang || 'en';
 const t = (k) => tr(lang(), k);
 
-// Paleta (dark, validada con el validador del skill dataviz):
+// Palette (dark, validated with the dataviz skill validator):
 const C = { human: '#3987e5', bot: '#d95926', s3: '#199e70', s4: '#c98500', s5: '#d55181' };
 
-// Bandera emoji a partir del código ISO de país.
+// Emoji flag from the ISO country code.
 function flag(cc) {
   if (!cc || cc === 'ZZ') return '🌐';
   if (cc === 'LOCAL') return '🏠';
@@ -38,7 +38,7 @@ function trendHtml(p) {
   return `<span class="trend ${cls}">${arrow} ${Math.abs(p.changePct)}%</span>`;
 }
 
-// ── Tooltip compartido ──────────────────────────────────────────────────────
+// ── Shared tooltip ──────────────────────────────────────────────────────────
 let tip;
 function ensureTip() {
   if (!tip) {
@@ -77,7 +77,7 @@ function renderKpis(d) {
   ].join('');
 }
 
-// ── Serie temporal apilada (24h, humano vs bot) ─────────────────────────────
+// ── Stacked time series (24h, human vs bot) ─────────────────────────────────
 function renderHourly(hourly) {
   const box = $('#tr-hourly');
   const W = 720, H = 240, padL = 34, padB = 26, padT = 10, padR = 8;
@@ -86,7 +86,7 @@ function renderHourly(hourly) {
   const bw = (W - padL - padR) / n;
   const barW = Math.min(22, bw - 4);
   const y = (v) => padT + (H - padT - padB) * (1 - v / max);
-  const gap = 2; // separación de superficie entre segmentos apilados
+  const gap = 2; // surface gap between stacked segments
 
   let bars = '';
   hourly.forEach((h, i) => {
@@ -98,12 +98,12 @@ function renderHourly(hourly) {
     const yBotTop = yHumanTop - hBot - (h.bot && h.human ? gap : 0);
     if (h.human) bars += `<rect x="${x}" y="${yHumanTop}" width="${barW}" height="${Math.max(1, hHuman)}" rx="3" fill="${C.human}"/>`;
     if (h.bot) bars += `<rect x="${x}" y="${yBotTop}" width="${barW}" height="${Math.max(1, hBot)}" rx="3" fill="${C.bot}"/>`;
-    // zona de hover invisible (target mayor que la marca)
+    // invisible hover zone (target larger than the mark)
     bars += `<rect class="hbar" x="${padL + i * bw}" y="${padT}" width="${bw}" height="${H - padT - padB}" fill="transparent"
       data-tip="${esc(`${h.label} · ${h.total} — ${h.human} ${t('tr.legend.human')} / ${h.bot} ${t('tr.legend.bot')}`)}"/>`;
   });
 
-  // ejes: solo etiquetas cada 4 horas para no saturar
+  // axes: labels only every 4 hours to avoid clutter
   let ticks = '';
   hourly.forEach((h, i) => {
     if (i % 4 === 0) ticks += `<text x="${padL + i * bw + bw / 2}" y="${H - 8}" class="axis" text-anchor="middle">${h.label}</text>`;
@@ -128,7 +128,7 @@ function renderHourly(hourly) {
   });
 }
 
-// ── Barras horizontales (tops) ──────────────────────────────────────────────
+// ── Horizontal bars (tops) ──────────────────────────────────────────────────
 function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) {
   const box = $('#' + id);
   if (!items.length) { box.innerHTML = `<p class="hint">${t('tr.nodata')}</p>`; return; }
@@ -145,7 +145,7 @@ function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) 
   });
 }
 
-// ── Feed de accesos en vivo (redactado) ─────────────────────────────────────
+// ── Live access feed (redacted) ─────────────────────────────────────────────
 function classBadge(e) {
   if (e.isBot) return `<span class="badge-chip bot" title="${esc(e.botReason || '')}">🤖 ${e.botKind || t('tr.bot')}</span>`;
   if (e.beacon) return `<span class="badge-chip human">🧑 ${t('tr.human')}</span>`;
@@ -172,7 +172,7 @@ function renderFeed(recent) {
     </tbody></table></div>`;
 }
 
-// ── Explorador de visitantes ────────────────────────────────────────────────
+// ── Visitor explorer ────────────────────────────────────────────────────────
 async function renderVisitors() {
   const box = $('#tr-visitors');
   const data = await fetch('/api/traffic/visitors').then((r) => r.json());
@@ -195,7 +195,7 @@ async function renderVisitors() {
     </tbody></table></div>`;
 }
 
-// ── Orquestación ────────────────────────────────────────────────────────────
+// ── Orchestration ───────────────────────────────────────────────────────────
 let lastDash = null;
 
 async function load() {
@@ -230,9 +230,9 @@ export function initTraffic() {
       await load();
       btn.disabled = false; btn.textContent = original;
     });
-    // Re-pintar etiquetas al cambiar de idioma (los datos ya están en memoria).
+    // Re-paint labels on language change (data is already in memory).
     window.addEventListener('vt-lang', () => { if (lastDash) { paint(lastDash); renderVisitors(); } });
-    // Marcar "tú eres este visitante" cuando el beacon confirme.
+    // Mark "you are this visitor" once the beacon confirms.
     window.addEventListener('vt-tracked', () => { if (lastDash) renderVisitors(); });
   }
   load();

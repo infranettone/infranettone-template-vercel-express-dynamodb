@@ -3,10 +3,10 @@ const { getStatus } = require('../services/statusService');
 
 const router = express.Router();
 
-// Health check mínimo para monitores externos (rápido, sin tocar AWS).
+// Minimal health check for external monitors (fast, no AWS calls).
 router.get('/health', (req, res) => res.json({ ok: true }));
 
-// Estado completo de conexiones para el panel del showcase.
+// Full connection status for the showcase panel.
 router.get('/', async (req, res, next) => {
   try {
     res.json(await getStatus());

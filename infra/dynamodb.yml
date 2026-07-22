@@ -1,22 +1,22 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Tabla DynamoDB unica (single-table design) que respalda la plantilla Vercel + Express.
+Description: Single DynamoDB table (single-table design) backing the Vercel + Express template.
 
 Parameters:
   TableName:
     Type: String
     Default: vedtemplate-app
-    Description: Nombre de la tabla DynamoDB.
+    Description: DynamoDB table name.
 
 Resources:
   AppTable:
     Type: AWS::DynamoDB::Table
-    # Retain: borrar el stack nunca borra los datos.
+    # Retain: deleting the stack never deletes the data.
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
       TableName: !Ref TableName
-      # Single-table design: cada entidad se discrimina por el prefijo de pk
-      # (ITEM, ...). PAY_PER_REQUEST = coste 0 sin trafico (free tier).
+      # Single-table design: each entity is discriminated by the pk prefix
+      # (ITEM, ...). PAY_PER_REQUEST = 0 cost with no traffic (free tier).
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -28,8 +28,8 @@ Resources:
           KeyType: HASH
         - AttributeName: sk
           KeyType: RANGE
-      # Las entidades que quieran caducar solas llevan un atributo `ttl`
-      # (epoch en segundos); el resto simplemente lo omite.
+      # Entities that should expire on their own carry a `ttl` attribute
+      # (epoch seconds); the rest simply omit it.
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -38,12 +38,12 @@ Resources:
 
 Outputs:
   TableName:
-    Description: Nombre de la tabla (ponlo como DYNAMODB_TABLE en Vercel).
+    Description: Table name (set it as DYNAMODB_TABLE in Vercel).
     Value: !Ref AppTable
     Export:
       Name: !Sub '${AWS::StackName}-TableName'
   TableArn:
-    Description: ARN de la tabla (para acotar la politica IAM).
+    Description: Table ARN (to scope the IAM policy).
     Value: !GetAtt AppTable.Arn
     Export:
       Name: !Sub '${AWS::StackName}-TableArn'

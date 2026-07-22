@@ -1,5 +1,5 @@
-// Inserta unos registros de ejemplo en la tabla (o en memoria si no hay
-// credenciales, en cuyo caso solo sirve para verificar el código).
+// Inserts a few sample records into the table (or into memory if there are no
+// credentials, in which case it only serves to verify the code).
 //
 //   node scripts/seed.js
 
@@ -7,18 +7,18 @@ require('dotenv').config();
 const { createItem, listItems } = require('../src/services/itemsService');
 
 const SAMPLES = [
-  'Primer registro de ejemplo (seed)',
-  'La plantilla escribe en DynamoDB vía PutCommand',
-  'Borra estos registros desde la pestaña Demo del showcase',
+  'First sample record (seed)',
+  'The template writes to DynamoDB via PutCommand',
+  'Delete these records from the showcase Demo tab',
 ];
 
 (async () => {
   for (const text of SAMPLES) {
     const item = await createItem(text);
-    console.log('creado:', item.id, '-', item.text);
+    console.log('created:', item.id, '-', item.text);
   }
   const items = await listItems();
-  console.log(`\nTotal registros ahora: ${items.length}`);
+  console.log(`\nTotal records now: ${items.length}`);
 })().catch((err) => {
   console.error(err);
   process.exit(1);

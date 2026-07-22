@@ -1,7 +1,7 @@
 name: CI
 
-# Tests de la aplicación en cada push y PR. No necesita secretos: los tests
-# corren en modo memoria (sin AWS), igual que la app sin credenciales.
+# Application tests on every push and PR. No secrets needed: the tests run in
+# memory mode (no AWS), just like the app without credentials.
 on:
   push:
     branches: [main]

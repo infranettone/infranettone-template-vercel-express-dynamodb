@@ -1,8 +1,8 @@
-// Punto de entrada único.
+// Single entry point.
 //
-// - En Vercel (@vercel/node) basta con exportar la app Express: la plataforma
-//   la envuelve en una función serverless, no hay que hacer listen().
-// - En local, si el archivo se ejecuta directamente, levanta el servidor HTTP.
+// - On Vercel (@vercel/node) exporting the Express app is enough: the platform
+//   wraps it in a serverless function, no listen() needed.
+// - Locally, if the file is run directly, it starts the HTTP server.
 
 const app = require('./app');
 

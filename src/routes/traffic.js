@@ -3,22 +3,22 @@ const { getDashboard, getVisitorsView, track, simulate } = require('../services/
 
 const router = express.Router();
 
-// Dashboard agregado (KPIs, series, tops, feed reciente redactado).
+// Aggregated dashboard (KPIs, series, tops, redacted recent feed).
 router.get('/', async (req, res, next) => {
   try {
     res.json(await getDashboard());
   } catch (err) { next(err); }
 });
 
-// Explorador de visitantes identificados.
+// Explorer of identified visitors.
 router.get('/visitors', async (req, res, next) => {
   try {
     res.json(await getVisitorsView());
   } catch (err) { next(err); }
 });
 
-// Beacon del navegador: recibe el fingerprint del cliente y registra la visita.
-// Devuelve una cookie de visitante para poder unir accesos posteriores.
+// Browser beacon: receives the client fingerprint and records the visit.
+// Returns a visitor cookie so later accesses can be joined to the visitor.
 router.post('/track', async (req, res, next) => {
   try {
     const result = await track(req, req.body || {});
@@ -29,7 +29,7 @@ router.post('/track', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Genera tráfico sintético para DEMOSTRAR el dashboard con datos vivos.
+// Generates synthetic traffic to DEMONSTRATE the dashboard with live data.
 router.post('/simulate', async (req, res, next) => {
   try {
     const count = Math.min(Number(req.body?.count) || 40, 200);

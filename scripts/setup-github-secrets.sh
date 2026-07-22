@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# Crea el usuario IAM que usa el pipeline de GitHub Actions para desplegar el
-# stack de CloudFormation (deploy-infra.yml) y sube sus credenciales como
-# secretos del repo con `gh`. Separado del usuario runtime de Vercel: el del
-# pipeline puede tocar CloudFormation + DynamoDB (crear tabla); el de Vercel
-# solo lee/escribe datos de la tabla.
+# Creates the IAM user that the GitHub Actions pipeline uses to deploy the
+# CloudFormation stack (deploy-infra.yml) and uploads its credentials as repo
+# secrets with `gh`. Separate from the Vercel runtime user: the pipeline user
+# can touch CloudFormation + DynamoDB (create the table); the Vercel one only
+# reads/writes the table's data.
 #
-#   ./scripts/setup-github-secrets.sh --profile miperfil --repo usuario/repo
+#   ./scripts/setup-github-secrets.sh --profile myprofile --repo user/repo
 #
 set -euo pipefail
 
@@ -24,21 +24,21 @@ while [[ $# -gt 0 ]]; do
     --repo)    REPO="${2:-}"; shift 2 ;;
     --stack)   STACK_NAME="${2:-}"; shift 2 ;;
     -h|--help)
-      echo "Uso: $0 --profile <perfil> --repo <owner/repo> [--region r] [--stack s]"; exit 0 ;;
-    *) echo "Opción desconocida: $1" >&2; exit 1 ;;
+      echo "Usage: $0 --profile <profile> --repo <owner/repo> [--region r] [--stack s]"; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
-[[ -z "$PROFILE" || -z "$REPO" ]] && { echo "error: --profile y --repo son obligatorios" >&2; exit 1; }
+[[ -z "$PROFILE" || -z "$REPO" ]] && { echo "error: --profile and --repo are required" >&2; exit 1; }
 
 aws() { command aws --profile "$PROFILE" --region "$REGION" "$@"; }
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-echo "==> Cuenta $ACCOUNT_ID, región $REGION, repo $REPO"
+echo "==> Account $ACCOUNT_ID, region $REGION, repo $REPO"
 
 if ! aws iam get-user --user-name "$USER_NAME" >/dev/null 2>&1; then
   aws iam create-user --user-name "$USER_NAME" >/dev/null
-  echo "==> Usuario IAM '$USER_NAME' creado."
+  echo "==> IAM user '$USER_NAME' created."
 fi
 
 POLICY_DOC=$(cat <<JSON
@@ -66,7 +66,7 @@ JSON
 aws iam put-user-policy --user-name "$USER_NAME" \
   --policy-name "$POLICY_NAME" --policy-document "$POLICY_DOC"
 
-echo "==> Creando access key y subiéndola como secretos de GitHub…"
+echo "==> Creating access key and uploading it as GitHub secrets…"
 CREDS=$(aws iam create-access-key --user-name "$USER_NAME" \
   --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
 KEY_ID=$(echo "$CREDS" | cut -f1)
@@ -75,4 +75,4 @@ SECRET=$(echo "$CREDS" | cut -f2)
 gh secret set AWS_ACCESS_KEY_ID --repo "$REPO" --body "$KEY_ID"
 gh secret set AWS_SECRET_ACCESS_KEY --repo "$REPO" --body "$SECRET"
 
-echo "==> Listo. El workflow deploy-infra.yml ya puede desplegar el stack."
+echo "==> Done. The deploy-infra.yml workflow can now deploy the stack."

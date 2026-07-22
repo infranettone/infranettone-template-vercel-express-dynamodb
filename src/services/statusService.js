@@ -1,15 +1,15 @@
-// Estado en vivo de todas las conexiones de la plantilla.
+// Live status of all the template's connections.
 //
-// Alimenta la pestaña "Conexiones" del showcase: qué variables de entorno hay,
-// si DynamoDB responde y con qué latencia, dónde corre el proceso (Vercel o
-// local) y en qué modo de almacenamiento está la app.
+// Feeds the "Connections" tab of the showcase: which environment variables are
+// present, whether DynamoDB responds and with what latency, where the process
+// runs (Vercel or local) and which storage mode the app is in.
 
 const { DescribeTableCommand, DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { isDynamoEnabled, TABLE_NAME, REGION } = require('../config/dynamo');
 
 async function checkDynamo() {
   if (!isDynamoEnabled()) {
-    return { enabled: false, reachable: false, detail: 'Sin credenciales AWS: modo memoria' };
+    return { enabled: false, reachable: false, detail: 'No AWS credentials: memory mode' };
   }
   const config = { region: REGION };
   if (process.env.DYNAMODB_ENDPOINT) config.endpoint = process.env.DYNAMODB_ENDPOINT;
@@ -24,7 +24,7 @@ async function checkDynamo() {
       tableStatus: res.Table.TableStatus,
       itemCount: res.Table.ItemCount,
       billingMode: res.Table.BillingModeSummary?.BillingMode || 'PROVISIONED',
-      detail: `Tabla "${TABLE_NAME}" en ${REGION}`,
+      detail: `Table "${TABLE_NAME}" in ${REGION}`,
     };
   } catch (err) {
     return { enabled: true, reachable: false, latencyMs: Date.now() - t0, detail: err.name + ': ' + err.message };
@@ -39,7 +39,7 @@ async function getStatus() {
     timestamp: new Date().toISOString(),
     runtime: {
       node: process.version,
-      platform: process.env.VERCEL ? 'Vercel (serverless)' : 'Local / otro',
+      platform: process.env.VERCEL ? 'Vercel (serverless)' : 'Local / other',
       region: process.env.VERCEL_REGION || null,
       uptimeSeconds: Math.round(process.uptime()),
     },
@@ -50,7 +50,7 @@ async function getStatus() {
       AWS_SECRET_ACCESS_KEY: Boolean(process.env.AWS_SECRET_ACCESS_KEY),
       CORS_ORIGINS: Boolean(process.env.CORS_ORIGINS),
     },
-    storage: { mode: isDynamoEnabled() ? 'dynamodb' : 'memoria', table: TABLE_NAME, region: REGION },
+    storage: { mode: isDynamoEnabled() ? 'dynamodb' : 'memory', table: TABLE_NAME, region: REGION },
     dynamo,
   };
 }

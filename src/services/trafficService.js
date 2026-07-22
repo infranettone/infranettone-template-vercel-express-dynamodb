@@ -1,46 +1,45 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  Monitorización, auditoría e identificación de accesos (traffic intelligence)
+//  Access monitoring, auditing and identification (traffic intelligence)
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Captura cada acceso, identifica al visitante (fingerprint + señales de red),
-// clasifica humano vs bot y produce agregados de tendencia. Pensado para correr
-// gratis: bajo volumen, single-table DynamoDB con TTL, o memoria sin AWS.
+// Captures every access, identifies the visitor (fingerprint + network
+// signals), classifies human vs bot and produces trend aggregates. Built to run
+// for free: low volume, single-table DynamoDB with TTL, or memory without AWS.
 //
-// PRIVACIDAD (la app es pública): los valores sensibles de request/response se
-// CAPTAN pero NUNCA se almacenan ni se exponen en claro. De la IP guardamos solo
-// una versión enmascarada (para geolocalizar a groso modo) y un hash con sal
-// (para contar únicos sin revelar la IP). De cabeceras como Authorization o
-// Cookie guardamos únicamente que existían y cuántas, jamás su contenido.
+// PRIVACY (the app is public): sensitive request/response values are CAPTURED
+// but NEVER stored or exposed in clear. For the IP we keep only a masked version
+// (for coarse geolocation) and a salted hash (to count uniques without revealing
+// the IP). For headers like Authorization or Cookie we keep only whether they
+// were present and how many, never their content.
 //
-// Modelo de datos (prefijos de pk):
-//   EVENT   pk="EVENT"   sk="<iso>#<id>"   ttl=7d   → un acceso
-//   VISITOR pk="VISITOR" sk="<fingerprint>"          → perfil de visitante
+// Data model (pk prefixes):
+//   EVENT   pk="EVENT"   sk="<iso>#<id>"   ttl=7d   → one access
+//   VISITOR pk="VISITOR" sk="<fingerprint>"          → visitor profile
 //
-// Los agregados del dashboard se calculan al vuelo sobre los eventos recientes
-// (Query acotada). Con TTL la tabla se mantiene pequeña: coste ~0 y sin rollups
-// que puedan desincronizarse. Filosofía de la plantilla: máxima relación
-// calidad/precio.
+// The dashboard aggregates are computed on the fly over recent events (bounded
+// Query). With TTL the table stays small: ~0 cost and no rollups that could
+// drift out of sync. Template philosophy: best value for money.
 
 const crypto = require('crypto');
 const { QueryCommand, PutCommand, UpdateCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { getDocClient, isDynamoEnabled, TABLE_NAME, KEYS } = require('../config/dynamo');
 
 const EVENT_TTL_DAYS = 7;
-const MAX_SCAN = 3000;           // techo de eventos leídos para agregar
+const MAX_SCAN = 3000;           // cap of events read for aggregation
 const SALT = process.env.TRACK_SALT || 'vedtemplate-privacy-salt';
 
-// ── Almacén en memoria (fallback sin AWS) ───────────────────────────────────
+// ── In-memory store (fallback without AWS) ──────────────────────────────────
 const mem = { events: [], visitors: new Map() };
 const MEM_CAP = 5000;
 
-// ── Utilidades de red / privacidad ──────────────────────────────────────────
+// ── Network / privacy utilities ─────────────────────────────────────────────
 
 function clientIp(req) {
   const xff = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   return xff || req.socket?.remoteAddress || '';
 }
 
-// Enmascara la IP: IPv4 pierde el último octeto, IPv6 conserva 3 hextets.
+// Mask the IP: IPv4 drops the last octet, IPv6 keeps 3 hextets.
 function maskIp(ip) {
   if (!ip) return '';
   if (ip.includes('.')) {
@@ -54,14 +53,14 @@ function maskIp(ip) {
   return 'x';
 }
 
-// Hash con sal: permite contar visitantes únicos sin guardar la IP real.
+// Salted hash: lets us count unique visitors without storing the real IP.
 function hashIp(ip) {
   if (!ip) return '';
   return crypto.createHash('sha256').update(SALT + '|' + ip).digest('hex').slice(0, 12);
 }
 
-// Geolocalización aproximada. En Vercel llega en cabeceras del edge; en local
-// no hay, así que se marca como desconocida.
+// Approximate geolocation. On Vercel it arrives in edge headers; locally there
+// is none, so it's marked as unknown.
 function geoFromReq(req) {
   const h = req.headers;
   const cc = (h['x-vercel-ip-country'] || '').toUpperCase();
@@ -72,7 +71,7 @@ function geoFromReq(req) {
   };
 }
 
-// ── Parsing de User-Agent (ligero, sin dependencias) ────────────────────────
+// ── User-Agent parsing (lightweight, no dependencies) ───────────────────────
 
 function parseUA(ua = '') {
   const u = ua.toLowerCase();
@@ -97,22 +96,22 @@ function parseUA(ua = '') {
   return { browser, os, device };
 }
 
-// ── Detección de bots ───────────────────────────────────────────────────────
-// Dos señales: firma en el User-Agent y ausencia de beacon JS. Un acceso que
-// nunca ejecuta el beacon del navegador es sospechoso de automatización.
+// ── Bot detection ───────────────────────────────────────────────────────────
+// Two signals: a signature in the User-Agent and the absence of the JS beacon.
+// An access that never runs the browser beacon is suspected of automation.
 
 const BOT_RE = /(bot|crawl|spider|slurp|mediapartners|adsbot|bingpreview|facebookexternalhit|whatsapp|telegrambot|discordbot|slackbot|embedly|preview|headless|phantom|selenium|playwright|puppeteer|python-requests|curl|wget|axios|node-fetch|go-http|java\/|okhttp|scrapy|semrush|ahrefs|mj12|dotbot|petalbot)/i;
 const KNOWN_GOOD = /(googlebot|bingbot|duckduckbot|applebot|yandex|baiduspider)/i;
 
 function classifyBot(ua, beacon) {
-  if (!ua) return { isBot: true, botKind: 'no-ua', botReason: 'Sin User-Agent' };
-  if (KNOWN_GOOD.test(ua)) return { isBot: true, botKind: 'search-engine', botReason: 'Buscador conocido' };
-  if (BOT_RE.test(ua)) return { isBot: true, botKind: 'bot', botReason: 'Firma de bot en el UA' };
-  if (beacon) return { isBot: false, botKind: 'human', botReason: 'Beacon JS confirmado' };
-  return { isBot: false, botKind: 'unverified', botReason: 'Sin beacon (no confirmado)' };
+  if (!ua) return { isBot: true, botKind: 'no-ua', botReason: 'No User-Agent' };
+  if (KNOWN_GOOD.test(ua)) return { isBot: true, botKind: 'search-engine', botReason: 'Known search engine' };
+  if (BOT_RE.test(ua)) return { isBot: true, botKind: 'bot', botReason: 'Bot signature in UA' };
+  if (beacon) return { isBot: false, botKind: 'human', botReason: 'JS beacon confirmed' };
+  return { isBot: false, botKind: 'unverified', botReason: 'No beacon (unconfirmed)' };
 }
 
-// ── Cookies (parser minúsculo, sin cookie-parser) ───────────────────────────
+// ── Cookies (tiny parser, no cookie-parser) ─────────────────────────────────
 
 function readCookie(req, name) {
   const raw = req.headers.cookie || '';
@@ -125,7 +124,7 @@ function readCookie(req, name) {
 
 const VID_COOKIE = 'vt_vid';
 
-// ── Construcción de un evento ───────────────────────────────────────────────
+// ── Building an event ───────────────────────────────────────────────────────
 
 function buildEvent(req, { beacon = false, client = null, type = 'api' } = {}) {
   const ua = req.headers['user-agent'] || '';
@@ -134,7 +133,7 @@ function buildEvent(req, { beacon = false, client = null, type = 'api' } = {}) {
   const bot = classifyBot(ua, beacon);
   const now = new Date();
 
-  // Valores sensibles: se CAPTAN (se leen) pero solo se guarda su existencia.
+  // Sensitive values: they are CAPTURED (read) but only their existence is stored.
   const cookieCount = (req.headers.cookie || '').split(';').filter((c) => c.trim()).length;
   const hasAuth = Boolean(req.headers.authorization);
   const hasQuery = req.originalUrl?.includes('?') || false;
@@ -154,12 +153,12 @@ function buildEvent(req, { beacon = false, client = null, type = 'api' } = {}) {
     region: geo.region,
     ...parseUA(ua),
     uaRaw: ua.slice(0, 300),
-    referer: '',                            // se rellena abajo sin query
+    referer: '',                            // filled below without the query
     refererHost: '',
     ...bot,
     beacon,
     visitorId,
-    // Señales sensibles: presencia, jamás contenido.
+    // Sensitive signals: presence only, never content.
     hasAuth,
     cookieCount,
     hasQuery,
@@ -175,7 +174,7 @@ function withReferer(ev, refererRaw) {
   return ev;
 }
 
-// ── Persistencia ────────────────────────────────────────────────────────────
+// ── Persistence ─────────────────────────────────────────────────────────────
 
 async function saveEvent(ev) {
   if (!isDynamoEnabled()) {
@@ -211,8 +210,8 @@ async function upsertVisitor(ev, client) {
     });
     return;
   }
-  // DynamoDB no admite operadores booleanos (OR) en UpdateExpression, así que
-  // la parte de "humanConfirmed" se construye condicionalmente en JS.
+  // DynamoDB doesn't support boolean operators (OR) in UpdateExpression, so the
+  // "humanConfirmed" part is built conditionally in JS.
   const names = {
     '#h': 'hits', '#ls': 'lastSeen', '#fs': 'firstSeen', '#hc': 'humanConfirmed', '#fp': 'fp',
     '#c': 'country', '#d': 'device', '#b': 'browser', '#o': 'os', '#ib': 'isBot',
@@ -241,9 +240,9 @@ async function upsertVisitor(ev, client) {
   }));
 }
 
-// ── API pública del servicio ────────────────────────────────────────────────
+// ── Public service API ──────────────────────────────────────────────────────
 
-// Registra un acceso desde el middleware (server-side). Fire-and-forget.
+// Records an access from the middleware (server-side). Fire-and-forget.
 async function record(req) {
   try {
     const ev = withReferer(buildEvent(req, { type: 'api' }), req.headers.referer || req.headers.referrer);
@@ -254,7 +253,7 @@ async function record(req) {
   }
 }
 
-// Registra una visita desde el beacon del navegador (con fingerprint).
+// Records a visit from the browser beacon (with fingerprint).
 async function track(req, client) {
   const ev = withReferer(
     buildEvent(req, { beacon: true, client, type: 'pageview' }),
@@ -266,7 +265,7 @@ async function track(req, client) {
   return { visitorId: ev.visitorId, country: ev.country, isBot: ev.isBot, cookie: VID_COOKIE };
 }
 
-// Inyecta accesos sintéticos para poder DEMOSTRAR el dashboard con datos vivos.
+// Injects synthetic accesses so the dashboard can be DEMONSTRATED with live data.
 async function simulate(count = 40) {
   const countries = ['ES', 'US', 'DE', 'FR', 'GB', 'MX', 'AR', 'BR', 'IT', 'NL', 'JP', 'ZZ'];
   const paths = ['/', '/', '/', '/api/status', '/api/items', '/api/track', '/robots.txt', '/sitemap.xml'];
@@ -290,7 +289,7 @@ async function simulate(count = 40) {
     const isBot = Math.random() < 0.35;
     const ua = isBot ? pick(bots) : pick(humans);
     const beacon = !isBot && Math.random() < 0.85;
-    // Reparte los timestamps en las últimas 24h para que la serie temporal tenga forma.
+    // Spread timestamps over the last 24h so the time series has shape.
     const ago = Math.pow(Math.random(), 1.6) * 24 * 3600 * 1000;
     const ts = new Date(Date.now() - ago);
     const ip = `${10 + (i % 90)}.${i % 255}.${(i * 7) % 255}.${(i * 13) % 255}`;
@@ -315,7 +314,7 @@ async function simulate(count = 40) {
   return { inserted: n };
 }
 
-// ── Lectura y agregación ────────────────────────────────────────────────────
+// ── Reading and aggregation ─────────────────────────────────────────────────
 
 async function recentEvents(limit = MAX_SCAN) {
   if (!isDynamoEnabled()) {
@@ -355,7 +354,7 @@ function topCounts(events, field, n = 8) {
     .sort((a, b) => b.count - a.count).slice(0, n);
 }
 
-// Vista redactada de un evento (lo que SÍ se puede mostrar en público).
+// Redacted view of an event (what CAN be shown publicly).
 function redactEvent(e) {
   return {
     ts: e.ts, type: e.type, method: e.method, path: e.path,
@@ -363,9 +362,9 @@ function redactEvent(e) {
     browser: e.browser, os: e.os, device: e.device,
     isBot: e.isBot, botKind: e.botKind, botReason: e.botReason, beacon: e.beacon,
     refererHost: e.refererHost, visitorId: (e.visitorId || '').slice(0, 8),
-    // Marcador de sensibles: se capturaron pero no se muestran.
+    // Sensitive marker: captured but not shown.
     sensitive: e.sensitiveCaptured
-      ? { captured: true, note: 'Valores sensibles captados y redactados', hasAuth: e.hasAuth, cookies: e.cookieCount }
+      ? { captured: true, note: 'Sensitive values captured and redacted', hasAuth: e.hasAuth, cookies: e.cookieCount }
       : { captured: false },
     synthetic: Boolean(e.synthetic),
   };
@@ -452,6 +451,6 @@ async function getVisitorsView(limit = 60) {
 
 module.exports = {
   record, track, simulate, getDashboard, getVisitorsView,
-  // exportados para tests
+  // exported for tests
   _internals: { parseUA, classifyBot, maskIp, redactEvent, buildEvent, withReferer },
 };

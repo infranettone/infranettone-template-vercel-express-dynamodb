@@ -1,15 +1,15 @@
-// Beacon de identificación de visitante (privacy-friendly, sin dependencias).
+// Visitor identification beacon (privacy-friendly, no dependencies).
 //
-// Calcula un fingerprint estable del navegador combinando señales poco
-// invasivas (no PII) y lo envía a /api/traffic/track junto con contexto de la
-// visita. El servidor añade IP enmascarada, geo y clasificación humano/bot.
+// Computes a stable browser fingerprint by combining low-invasiveness signals
+// (no PII) and sends it to /api/traffic/track along with visit context. The
+// server adds masked IP, geo and human/bot classification.
 //
-// Esto es lo que convierte una "petición anónima" en un "visitante": permite
-// contar únicos, detectar recurrencia y confirmar que hay un navegador real
-// ejecutando JS (una señal fuerte de tráfico legítimo frente a bots simples).
+// This is what turns an "anonymous request" into a "visitor": it lets us count
+// uniques, detect recurrence and confirm there is a real browser running JS (a
+// strong signal of legitimate traffic versus simple bots).
 
 (function () {
-  // No trackear en modo Do Not Track: respetamos la preferencia del usuario.
+  // Don't track in Do Not Track mode: we respect the user's preference.
   if (navigator.doNotTrack === '1' || window.doNotTrack === '1') return;
 
   async function sha256Hex(str) {
@@ -17,15 +17,15 @@
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
       return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
     } catch {
-      // Fallback simple si SubtleCrypto no está disponible (http/local antiguo).
+      // Simple fallback if SubtleCrypto isn't available (old http/local).
       let h = 0;
       for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
       return (h >>> 0).toString(16).padStart(8, '0');
     }
   }
 
-  // Huella de canvas: mismo navegador/GPU → mismo trazo. No identifica a la
-  // persona, solo distingue configuraciones de dispositivo.
+  // Canvas fingerprint: same browser/GPU → same drawing. It doesn't identify
+  // the person, only distinguishes device configurations.
   function canvasHash() {
     try {
       const c = document.createElement('canvas');
@@ -77,9 +77,9 @@
         body: JSON.stringify(payload),
         keepalive: true,
       });
-    } catch { /* el tracking nunca debe romper la página */ }
+    } catch { /* tracking must never break the page */ }
 
-    // Expuesto para que el dashboard muestre "tú eres este visitante".
+    // Exposed so the dashboard can show "you are this visitor".
     window.__vtVisitor = fp.slice(0, 8);
     window.dispatchEvent(new CustomEvent('vt-tracked', { detail: window.__vtVisitor }));
   }

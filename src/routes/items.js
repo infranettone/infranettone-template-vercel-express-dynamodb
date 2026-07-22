@@ -19,7 +19,7 @@ router.post('/', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const ok = await deleteItem(req.params.id);
-    if (!ok) return res.status(404).json({ error: 'no encontrado' });
+    if (!ok) return res.status(404).json({ error: 'not found' });
     res.status(204).end();
   } catch (err) { next(err); }
 });

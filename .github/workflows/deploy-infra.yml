@@ -1,7 +1,7 @@
 name: Deploy infra (DynamoDB)
 
-# Despliega el stack de CloudFormation que posee la tabla DynamoDB.
-# Se ejecuta bajo demanda, o automáticamente cuando cambia la plantilla en main.
+# Deploys the CloudFormation stack that owns the DynamoDB table.
+# Runs on demand, or automatically when the template changes on main.
 on:
   workflow_dispatch:
   push:
@@ -15,7 +15,7 @@ env:
   STACK_NAME: vedtemplate-app
   TABLE_NAME: vedtemplate-app
 
-# Nunca dejar que dos actualizaciones del stack compitan entre sí.
+# Never let two stack updates race each other.
 concurrency:
   group: deploy-infra
   cancel-in-progress: false

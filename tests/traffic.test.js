@@ -1,6 +1,6 @@
-// Tests de la herramienta de monitorización de tráfico, en modo memoria (sin
-// AWS). Cubren lo crítico: que los valores sensibles se captan pero NUNCA se
-// filtran, la clasificación de bots, el enmascarado de IP y el flujo del beacon.
+// Tests for the traffic monitoring tool, in memory mode (no AWS). They cover
+// the critical parts: that sensitive values are captured but NEVER leaked, bot
+// classification, IP masking and the beacon flow.
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
@@ -12,14 +12,14 @@ const traffic = require('../src/services/trafficService');
 const { parseUA, classifyBot, maskIp, redactEvent, buildEvent } = traffic._internals;
 const app = require('../src/app');
 
-// ── Unitarios ────────────────────────────────────────────────────────────────
+// ── Unit ─────────────────────────────────────────────────────────────────────
 
-test('maskIp elimina el último octeto en IPv4 y acorta IPv6', () => {
+test('maskIp drops the last octet in IPv4 and shortens IPv6', () => {
   assert.strictEqual(maskIp('85.123.45.200'), '85.123.45.x');
   assert.strictEqual(maskIp('2001:db8:1234:5678::1'), '2001:db8:1234::');
 });
 
-test('parseUA reconoce navegador, SO y dispositivo', () => {
+test('parseUA recognizes browser, OS and device', () => {
   const chrome = parseUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125.0 Safari/537.36');
   assert.strictEqual(chrome.browser, 'Chrome');
   assert.strictEqual(chrome.os, 'Windows');
@@ -29,7 +29,7 @@ test('parseUA reconoce navegador, SO y dispositivo', () => {
   assert.strictEqual(iphone.device, 'Mobile');
 });
 
-test('classifyBot detecta bots, buscadores y humanos', () => {
+test('classifyBot detects bots, search engines and humans', () => {
   assert.strictEqual(classifyBot('curl/8.4.0', false).isBot, true);
   assert.strictEqual(classifyBot('Mozilla/5.0 (compatible; Googlebot/2.1)', false).botKind, 'search-engine');
   assert.strictEqual(classifyBot('Mozilla/5.0 (Windows) Chrome/125', true).isBot, false);
@@ -37,7 +37,7 @@ test('classifyBot detecta bots, buscadores y humanos', () => {
   assert.strictEqual(classifyBot('', false).isBot, true);
 });
 
-test('los valores sensibles se captan pero la vista redactada NUNCA los expone', () => {
+test('sensitive values are captured but the redacted view NEVER exposes them', () => {
   const req = {
     method: 'GET', path: '/api/items', originalUrl: '/api/items?secret=shh',
     socket: { remoteAddress: '10.20.30.40' },
@@ -48,25 +48,25 @@ test('los valores sensibles se captan pero la vista redactada NUNCA los expone',
     },
   };
   const ev = buildEvent(req, {});
-  // Internamente se marca que se captaron.
+  // Internally it's marked that they were captured.
   assert.strictEqual(ev.sensitiveCaptured, true);
   assert.strictEqual(ev.hasAuth, true);
   assert.strictEqual(ev.cookieCount, 2);
-  // Pero el evento JAMÁS guarda el contenido en claro.
+  // But the event NEVER stores the content in clear.
   const serialized = JSON.stringify(ev);
   assert.ok(!serialized.includes('SUPER-SECRET-TOKEN'));
   assert.ok(!serialized.includes('abc123'));
   assert.ok(!serialized.includes('secret=shh'));
-  // Y la vista pública redactada tampoco.
+  // Nor does the public redacted view.
   const red = JSON.stringify(redactEvent(ev));
   assert.ok(!red.includes('SUPER-SECRET-TOKEN') && !red.includes('abc123'));
   assert.match(red, /captured/);
-  // La IP se muestra enmascarada, nunca completa.
+  // The IP is shown masked, never in full.
   assert.ok(red.includes('10.20.30.x'));
   assert.ok(!red.includes('10.20.30.40'));
 });
 
-// ── Integración sobre la API ─────────────────────────────────────────────────
+// ── API integration ──────────────────────────────────────────────────────────
 
 let server, base;
 before(async () => {
@@ -76,7 +76,7 @@ before(async () => {
 });
 after(() => server.close());
 
-test('el beacon /api/traffic/track devuelve cookie de visitante', async () => {
+test('the /api/traffic/track beacon returns a visitor cookie', async () => {
   const res = await fetch(`${base}/api/traffic/track`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ fp: 'testvisitor0001', screen: '1920x1080@2', timezone: 'Europe/Madrid', path: '/' }),
@@ -87,7 +87,7 @@ test('el beacon /api/traffic/track devuelve cookie de visitante', async () => {
   assert.strictEqual(body.ok, true);
 });
 
-test('simulate puebla el dashboard y los agregados cuadran', async () => {
+test('simulate populates the dashboard and the aggregates add up', async () => {
   await fetch(`${base}/api/traffic/simulate`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ count: 50 }),
   });
@@ -97,16 +97,16 @@ test('simulate puebla el dashboard y los agregados cuadran', async () => {
   assert.strictEqual(d.hourly.length, 24);
   assert.ok(Array.isArray(d.topCountries) && d.topCountries.length > 0);
   assert.ok(d.recent.length > 0);
-  // Ningún evento del feed expone valores sensibles en claro.
+  // No feed event exposes sensitive values in clear.
   assert.ok(!JSON.stringify(d.recent).match(/Bearer |session=/));
 });
 
-test('el explorador de visitantes lista al visitante del beacon', async () => {
+test('the visitor explorer lists the beacon visitor', async () => {
   const d = await fetch(`${base}/api/traffic/visitors`).then((r) => r.json());
   assert.ok(d.visitors.some((v) => v.id.startsWith('testvisitor')));
 });
 
-test('GET /api/traffic no queda registrado a sí mismo (no se autocontamina)', async () => {
+test('GET /api/traffic is not recorded on itself (no self-pollution)', async () => {
   const before = (await fetch(`${base}/api/traffic`).then((r) => r.json())).totals.hits;
   await fetch(`${base}/api/traffic`);
   await fetch(`${base}/api/traffic`);

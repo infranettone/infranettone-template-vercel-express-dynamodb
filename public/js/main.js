@@ -1,14 +1,14 @@
-// Lógica del showcase: idiomas, pestañas, panel de estado en vivo y demo CRUD.
-// Sin frameworks: fetch + DOM, para que la plantilla sea legible de un vistazo.
+// Showcase logic: languages, tabs, live status panel and CRUD demo.
+// No frameworks: fetch + DOM, so the template reads at a glance.
 
 import { LANGS, translations, jsDefaults } from './i18n.js';
 import { initTraffic } from './traffic.js';
 
 const $ = (sel) => document.querySelector(sel);
 
-// ── Idiomas ─────────────────────────────────────────────────────────────────
-// El inglés vive en el HTML; al cambiar a otro idioma se guarda el original
-// para poder restaurarlo. Preferencia persistida en localStorage.
+// ── Languages ───────────────────────────────────────────────────────────────
+// English lives in the HTML; when switching to another language the original
+// is saved so it can be restored. Preference persisted in localStorage.
 let lang = localStorage.getItem('lang') || 'en';
 if (!LANGS[lang]) lang = 'en';
 const originals = new Map();
@@ -34,7 +34,7 @@ function applyLang(newLang) {
     el.placeholder = dict[key] !== undefined ? dict[key] : originals.get(key);
   });
   renderLangSwitcher();
-  // Re-pintar las zonas generadas por JS con las cadenas del idioma nuevo.
+  // Re-paint the JS-generated areas with the new language strings.
   if (lastStatus) paintStatus(lastStatus);
   if (lastItems) paintItems(lastItems);
   window.dispatchEvent(new Event('vt-lang'));
@@ -64,18 +64,18 @@ function renderLangSwitcher() {
 
 document.addEventListener('click', () => $('#lang-menu')?.classList.add('hidden'));
 
-// ── Diagramas Mermaid ───────────────────────────────────────────────────────
-// Solo se renderizan los diagramas de la pestaña visible: renderizar dentro
-// de un contenedor display:none produce "translate(undefined, NaN)".
+// ── Mermaid diagrams ────────────────────────────────────────────────────────
+// Only the visible tab's diagrams are rendered: rendering inside a
+// display:none container produces "translate(undefined, NaN)".
 async function renderDiagrams(section) {
-  if (!window.mermaid) return; // aún cargando; el evento mermaid-ready reintenta
+  if (!window.mermaid) return; // still loading; the mermaid-ready event retries
   const pending = section.querySelectorAll('pre.mermaid:not([data-processed])');
   if (pending.length) await window.mermaid.run({ nodes: pending });
 }
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
 
-// ── Pestañas (con deep-linking por hash: /#trafico) ─────────────────────────
+// ── Tabs (with hash deep-linking: /#trafico) ────────────────────────────────
 function activateTab(tab) {
   const btn = $(`#tabs button[data-tab="${tab}"]`);
   if (!btn) return;
@@ -85,7 +85,7 @@ function activateTab(tab) {
   const section = $(`#tab-${tab}`);
   section.classList.add('active');
   renderDiagrams(section);
-  // El dashboard de tráfico se carga la primera vez que se abre su pestaña.
+  // The traffic dashboard loads the first time its tab is opened.
   if (tab === 'trafico') initTraffic();
 }
 
@@ -96,7 +96,7 @@ document.querySelectorAll('#tabs button').forEach((btn) => {
   });
 });
 
-// ── Estado de conexiones ────────────────────────────────────────────────────
+// ── Connection status ───────────────────────────────────────────────────────
 let lastStatus = null;
 
 function statCard(label, value, cls = '') {
@@ -142,7 +142,7 @@ async function loadStatus() {
 
 $('#refresh-status').addEventListener('click', loadStatus);
 
-// ── Demo CRUD ───────────────────────────────────────────────────────────────
+// ── CRUD demo ───────────────────────────────────────────────────────────────
 let lastItems = null;
 
 function escapeHtml(s) {
@@ -200,14 +200,14 @@ $('#add-form').addEventListener('submit', async (e) => {
   }
 });
 
-// ── Ejemplos curl con la URL real ───────────────────────────────────────────
+// ── curl examples with the real URL ─────────────────────────────────────────
 $('#curl-examples').textContent = $('#curl-examples').textContent
   .replaceAll('BASE', window.location.origin);
 
-// ── Arranque ────────────────────────────────────────────────────────────────
+// ── Startup ─────────────────────────────────────────────────────────────────
 applyLang(lang);
 loadStatus();
 loadItems();
-// Deep-link inicial: si la URL trae #<tab>, abrir esa pestaña.
+// Initial deep-link: if the URL carries #<tab>, open that tab.
 const initialTab = location.hash.replace('#', '');
 if (initialTab) activateTab(initialTab);
