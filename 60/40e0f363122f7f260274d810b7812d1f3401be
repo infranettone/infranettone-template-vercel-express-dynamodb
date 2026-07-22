@@ -1,0 +1,38 @@
+public/js/i18n.js
+  s_896e0e381cf026::t_21296c9cc5574e 247-248
+  s_896e0e381cf026::t_24eb09be829d9a 486-487
+  s_896e0e381cf026::t_a28f23b8e7342a 575-576
+  s_896e0e381cf026::t_c3fe5ef31aeff4 58-59,66,298-299,306
+public/index.html
+  s_896e0e381cf026::t_c9b2a63e7aafc7 237
+  s_896e0e381cf026::t_b57071d88444d0 106-110
+public/styles/base.css
+  s_896e0e381cf026::t_d57e59d580e588 169-171
+  s_896e0e381cf026::t_9040cabfeea67a 79-96
+public/js/main.js
+  s_896e0e381cf026::t_52a9aa906c3b3c 275
+  s_896e0e381cf026::t_6a9444d0e3cf06 68-72,74-75,81-142
+  s_896e0e381cf026::t_75825f5151699c 143
+public/js/traffic.js
+  s_896e0e381cf026::t_afdf0ad93d8fc8 125-129,136,139-140,145-151,157-158,162-165
+  s_896e0e381cf026::t_59dc4bc4199b51 528,530-531
+  s_896e0e381cf026::t_4c674e93ca9ded 21,23,28-54
+README.md
+  s_896e0e381cf026::t_f3869e050cb824 194-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "6040e0f363122f7f260274d810b7812d1f3401be",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
