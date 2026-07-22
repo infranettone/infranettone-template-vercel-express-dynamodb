@@ -32,7 +32,9 @@ const PAGE_SIZES = [10, 25, 50, 100];
 function savePrefs() {
   localStorage.setItem('vt-traffic', JSON.stringify({
     range: ui.range, from: ui.from, to: ui.to, limit: ui.limit, auto: ui.auto, autoSecs: ui.autoSecs,
-    feedSize: ui.feed.size, visitorsSize: ui.visitors.size,
+    // Full table view state, so a reload lands on the same page/sort/filter.
+    feed: { size: ui.feed.size, page: ui.feed.page, sort: ui.feed.sort, filter: ui.feed.filter },
+    visitors: { size: ui.visitors.size, page: ui.visitors.page, sort: ui.visitors.sort },
   }));
 }
 function loadPrefs() {
@@ -44,8 +46,15 @@ function loadPrefs() {
     if (LIMITS.includes(p.limit)) ui.limit = p.limit;
     if (typeof p.auto === 'boolean') ui.auto = p.auto;
     if (Number(p.autoSecs) >= 3) ui.autoSecs = Math.min(Number(p.autoSecs), 3600);
-    if (PAGE_SIZES.includes(p.feedSize)) ui.feed.size = p.feedSize;
-    if (PAGE_SIZES.includes(p.visitorsSize)) ui.visitors.size = p.visitorsSize;
+    const restore = (dst, src) => {
+      if (!src) return;
+      if (PAGE_SIZES.includes(src.size)) dst.size = src.size;
+      if (Number.isInteger(src.page) && src.page >= 1) dst.page = src.page;
+      if (src.sort && typeof src.sort.col === 'string') dst.sort = { col: src.sort.col, dir: src.sort.dir === 'asc' ? 'asc' : 'desc' };
+      if (typeof src.filter === 'string') dst.filter = src.filter;
+    };
+    restore(ui.feed, p.feed);
+    restore(ui.visitors, p.visitors);
   } catch { /* ignore corrupt prefs */ }
 }
 function resetPrefs() {
@@ -394,17 +403,18 @@ function renderTable(box, cols, rows, state, rerender) {
 
   box.innerHTML = `<div class="viz-scroll"><table class="feed"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${pager}`;
 
+  const go = (p) => { state.page = p; savePrefs(); rerender(); };
   box.querySelectorAll('th.sortable').forEach((th) => th.addEventListener('click', () => {
     const c = th.dataset.col;
     if (s.col === c) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
     else { s.col = c; s.dir = 'asc'; }
-    state.page = 1; rerender();
+    go(1);
   }));
-  box.querySelector('.tbl-size').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; savePrefs(); rerender(); });
-  box.querySelector('.tbl-first').addEventListener('click', () => { state.page = 1; rerender(); });
-  box.querySelector('.tbl-prev').addEventListener('click', () => { state.page--; rerender(); });
-  box.querySelector('.tbl-next').addEventListener('click', () => { state.page++; rerender(); });
-  box.querySelector('.tbl-last').addEventListener('click', () => { state.page = pages; rerender(); });
+  box.querySelector('.tbl-size').addEventListener('change', (e) => { state.size = Number(e.target.value); go(1); });
+  box.querySelector('.tbl-first').addEventListener('click', () => go(1));
+  box.querySelector('.tbl-prev').addEventListener('click', () => go(state.page - 1));
+  box.querySelector('.tbl-next').addEventListener('click', () => go(state.page + 1));
+  box.querySelector('.tbl-last').addEventListener('click', () => go(pages));
 }
 
 // ── live access feed ─────────────────────────────────────────────────────────
@@ -433,7 +443,7 @@ function renderFeedControls() {
       <button class="btn" id="tr-csv">⬇ CSV</button>
       <button class="btn" id="tr-json">⬇ JSON</button>
     </div>`;
-  box.querySelectorAll('.fbtn').forEach((b) => b.addEventListener('click', () => { f.filter = b.dataset.f; f.page = 1; renderFeed(); renderFeedControls(); }));
+  box.querySelectorAll('.fbtn').forEach((b) => b.addEventListener('click', () => { f.filter = b.dataset.f; f.page = 1; savePrefs(); renderFeed(); renderFeedControls(); }));
   const inp = $('#tr-search');
   inp.addEventListener('input', () => { f.search = inp.value; f.page = 1; renderFeed(); });
   $('#tr-csv').addEventListener('click', () => exportFeed('csv'));

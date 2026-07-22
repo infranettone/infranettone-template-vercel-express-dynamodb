@@ -80,7 +80,7 @@ async function renderDiagrams(root) {
     if (node.dataset.zoomBound) return;
     node.dataset.zoomBound = '1';
     node.classList.add('zoomable');
-    node.addEventListener('click', () => openZoom(node.querySelector('svg')));
+    node.addEventListener('click', () => openZoom(node));
   });
 }
 
@@ -133,18 +133,28 @@ function buildZoom() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeZoom(); });
   return { overlay, content, reset };
 }
-function openZoom(svg) {
+// Move the real SVG into the viewer (no clone → no duplicate-id CSS glitches,
+// renders exactly as inline). Restore it to its <pre> on close. Force a large
+// base width so it actually fills the viewer; wheel/drag zoom from there.
+let zoomState = null;
+function openZoom(pre) {
+  const svg = pre.querySelector('svg');
   if (!svg) return;
   if (!zoomEl) zoomEl = buildZoom();
-  zoomEl.content.innerHTML = '';
-  const clone = svg.cloneNode(true);
-  clone.removeAttribute('style');
-  clone.style.maxWidth = 'none';
-  zoomEl.content.appendChild(clone);
+  zoomState = { svg, parent: pre, style: svg.getAttribute('style') || '' };
+  svg.setAttribute('style', 'width:84vw;height:auto;max-width:none;max-height:none;display:block;');
+  zoomEl.content.appendChild(svg);
   zoomEl.reset();
   zoomEl.overlay.classList.remove('hidden');
 }
-function closeZoom() { zoomEl?.overlay.classList.add('hidden'); }
+function closeZoom() {
+  if (zoomState) {
+    zoomState.svg.setAttribute('style', zoomState.style);
+    zoomState.parent.appendChild(zoomState.svg);
+    zoomState = null;
+  }
+  zoomEl?.overlay.classList.add('hidden');
+}
 
 // ── Collapsible sections ─────────────────────────────────────────────────────
 // Every top-level h2/h3 in a tab becomes a toggle for the content beneath it

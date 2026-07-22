@@ -47,7 +47,7 @@ function flagMallorca() {
 
 export const translations = {
   es: {
-    'subtitle': 'Showcase autoexplicativo: qué contiene la plantilla, cómo está conectado todo, cómo se despliega y una demo funcional contra la base de datos.',
+    'subtitle': '<strong>¿Nuevo por aquí?</strong> Esta página <strong>es</strong> una plantilla: un esquema listo para copiar y construir aplicaciones web. En vez de describirla en papel, todo funciona en vivo: alojada gratis en Vercel, con AWS DynamoDB detrás, y con un panel integrado que muestra en tiempo real quién la visita. <strong>Infranettone</strong> la creó para demostrar cómo lanzar aplicaciones reales de producción rápido y a coste casi cero. Recorre las pestañas para ver cómo encaja cada pieza, cómo se despliega, y para probarla tú mismo.',
     'tab.arch': '🏗️ Arquitectura',
     'tab.conn': '🔌 Conexiones (en vivo)',
     'tab.demo': '🧪 Demo CRUD',
@@ -287,7 +287,7 @@ npm run seed</pre>
   },
 
   ca: {
-    'subtitle': 'Showcase autoexplicatiu: què conté sa plantilla, com està connectat tot, com es desplega i una demo funcional contra sa base de dades.',
+    'subtitle': '<strong>¿Nou per aquí?</strong> Aquesta pàgina <strong>és</strong> una plantilla: un esquema llest per copiar i construir aplicacions web. En lloc de descriure-la en paper, tot funciona en viu: allotjada de franc a Vercel, amb AWS DynamoDB darrere, i amb un panell integrat que mostra en temps real qui la visita. <strong>Infranettone</strong> la va crear per demostrar com llançar aplicacions reals de producció ràpid i a cost quasi zero. Recorre ses pestanyes per veure com encaixa cada peça, com es desplega, i per provar-la tu mateix.',
     'tab.arch': '🏗️ Arquitectura',
     'tab.conn': '🔌 Connexions (en viu)',
     'tab.demo': '🧪 Demo CRUD',
