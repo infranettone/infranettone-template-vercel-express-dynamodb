@@ -1,0 +1,63 @@
+package-lock.json
+  s_896e0e381cf026::t_2a37275c144141 1-1710
+scripts/setup-aws.sh
+  s_896e0e381cf026::t_df61dbeb0b1d2c 1-128
+scripts/setup-github-secrets.sh
+  s_896e0e381cf026::t_8e25593be6fb67 1-78
+.env.example
+  s_896e0e381cf026::t_c05113d398dadb 1-17
+.github/workflows/ci.yml
+  s_896e0e381cf026::t_c53275529cce4e 1-20
+.github/workflows/deploy-infra.yml
+  s_896e0e381cf026::t_370bef3bcfaf15 1-54
+.gitignore
+  s_896e0e381cf026::t_6367a04ae7ace2 1-4
+README.md
+  s_896e0e381cf026::t_6f9df956e015e8 1-120
+infra/dynamodb.yml
+  s_896e0e381cf026::t_309b2946513cad 1-49
+package.json
+  s_896e0e381cf026::t_5ebf5d43b9d3bc 1-25
+public/index.html
+  s_896e0e381cf026::t_3cdbe0dd6c3941 1-278
+public/js/main.js
+  s_896e0e381cf026::t_f8b98fa7c45eaf 1-116
+public/styles/base.css
+  s_896e0e381cf026::t_c79c23b113194a 1-106
+scripts/seed.js
+  s_896e0e381cf026::t_238076fae7ea60 1-25
+src/app.js
+  s_896e0e381cf026::t_8a9a7f2e2713bb 1-37
+src/config/dynamo.js
+  s_896e0e381cf026::t_fb808855cdefda 1-42
+src/routes/items.js
+  s_896e0e381cf026::t_8c44d660f0a0cf 1-27
+src/routes/status.js
+  s_896e0e381cf026::t_7eea2e2e3cb1a8 1-16
+src/server.js
+  s_896e0e381cf026::t_1c681a5259d6d3 1-17
+src/services/itemsService.js
+  s_896e0e381cf026::t_277ce50456aa87 1-79
+src/services/statusService.js
+  s_896e0e381cf026::t_d89285f2ee32aa 1-58
+tests/app.test.js
+  s_896e0e381cf026::t_37eec479ecae7d 1-82
+vercel.json
+  s_896e0e381cf026::t_3f327420625f1f 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "374578483c2ef6f776e9bc581ffe4dca6041a714",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
