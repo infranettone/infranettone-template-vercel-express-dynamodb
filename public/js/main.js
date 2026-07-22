@@ -75,85 +75,147 @@ async function renderDiagrams(root) {
     .filter((el) => el.offsetParent !== null);
   if (!pending.length) return;
   await window.mermaid.run({ nodes: pending });
-  // Make each rendered diagram clickable to open the zoom viewer.
   pending.forEach((node) => {
     if (node.dataset.zoomBound) return;
     node.dataset.zoomBound = '1';
-    node.classList.add('zoomable');
-    node.addEventListener('click', () => openZoom(node));
+    enhanceDiagram(node);
   });
 }
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
 
-// ── Diagram zoom viewer (pan + wheel-zoom, no libraries) ─────────────────────
-let zoomEl = null;
-function buildZoom() {
-  const overlay = document.createElement('div');
-  overlay.id = 'zoom-modal';
-  overlay.className = 'zoom-modal hidden';
-  overlay.innerHTML = `
-    <div class="zoom-bar">
-      <button data-z="out" aria-label="Zoom out">−</button>
-      <button data-z="reset" aria-label="Reset zoom">⟲</button>
-      <button data-z="in" aria-label="Zoom in">＋</button>
-      <button data-z="close" aria-label="Close">✕</button>
-    </div>
-    <div class="zoom-stage"><div class="zoom-content"></div></div>`;
-  document.body.appendChild(overlay);
-
-  const stage = overlay.querySelector('.zoom-stage');
-  const content = overlay.querySelector('.zoom-content');
-  const st = { scale: 1, tx: 0, ty: 0, drag: false, sx: 0, sy: 0 };
-  const apply = () => { content.style.transform = `translate(${st.tx}px,${st.ty}px) scale(${st.scale})`; };
+// ── Interactive diagram viewer (pan, wheel-zoom, select-text, fullscreen) ────
+// A reusable pan/zoom controller wired to a "stage" element that clips its
+// content. Two modes: PAN (drag to move, text not selectable) and SELECT (drag
+// to select/copy text). Wheel zoom (toward the cursor) works in both modes, so
+// you never lose zoom while copying. Used both inline and in the fullscreen
+// overlay — no libraries.
+function makePanZoom(stage, getContent) {
+  const st = { scale: 1, tx: 0, ty: 0, drag: false, sx: 0, sy: 0, mode: 'pan' };
+  const apply = () => {
+    const c = getContent();
+    if (c) { c.style.transformOrigin = 'center center'; c.style.transform = `translate(${st.tx}px,${st.ty}px) scale(${st.scale})`; }
+  };
   const reset = () => { st.scale = 1; st.tx = 0; st.ty = 0; apply(); };
   const zoomAt = (factor, cx, cy) => {
-    const rect = stage.getBoundingClientRect();
-    const ox = cx - rect.left - rect.width / 2;
-    const oy = cy - rect.top - rect.height / 2;
-    const ns = Math.min(Math.max(st.scale * factor, 0.3), 8);
+    const r = stage.getBoundingClientRect();
+    const ox = cx - r.left - r.width / 2;
+    const oy = cy - r.top - r.height / 2;
+    const ns = Math.min(Math.max(st.scale * factor, 0.3), 12);
     const k = ns / st.scale;
     st.tx = ox - (ox - st.tx) * k;
     st.ty = oy - (oy - st.ty) * k;
     st.scale = ns;
     apply();
   };
+  const centerZoom = (f) => { const r = stage.getBoundingClientRect(); zoomAt(f, r.left + r.width / 2, r.top + r.height / 2); };
   stage.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.15 : 0.87, e.clientX, e.clientY); }, { passive: false });
-  stage.addEventListener('mousedown', (e) => { st.drag = true; st.sx = e.clientX - st.tx; st.sy = e.clientY - st.ty; stage.classList.add('grabbing'); });
+  stage.addEventListener('mousedown', (e) => {
+    if (st.mode !== 'pan' || e.button !== 0) return; // select mode → let the browser select text
+    st.drag = true; st.sx = e.clientX - st.tx; st.sy = e.clientY - st.ty; stage.classList.add('grabbing'); e.preventDefault();
+  });
   window.addEventListener('mousemove', (e) => { if (!st.drag) return; st.tx = e.clientX - st.sx; st.ty = e.clientY - st.sy; apply(); });
   window.addEventListener('mouseup', () => { st.drag = false; stage.classList.remove('grabbing'); });
-  overlay.querySelector('.zoom-bar').addEventListener('click', (e) => {
-    const z = e.target.dataset.z;
-    if (z === 'in') zoomAt(1.3, innerWidth / 2, innerHeight / 2);
-    else if (z === 'out') zoomAt(0.77, innerWidth / 2, innerHeight / 2);
-    else if (z === 'reset') reset();
-    else if (z === 'close') closeZoom();
-  });
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeZoom(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeZoom(); });
-  return { overlay, content, reset };
+  const setMode = (m) => { st.mode = m; stage.classList.toggle('select-mode', m === 'select'); };
+  return {
+    reset, apply, setMode,
+    zoomIn: () => centerZoom(1.3), zoomOut: () => centerZoom(0.77),
+    toggleMode: () => { setMode(st.mode === 'pan' ? 'select' : 'pan'); return st.mode; },
+    getMode: () => st.mode,
+  };
 }
-// Move the real SVG into the viewer (no clone → no duplicate-id CSS glitches,
-// renders exactly as inline). Restore it to its <pre> on close. Force a large
-// base width so it actually fills the viewer; wheel/drag zoom from there.
-let zoomState = null;
-function openZoom(pre) {
+
+const MODE_ICON = { pan: '✋', select: '⌶' };
+function toolbar(buttons) {
+  const bar = document.createElement('div');
+  bar.className = 'mmd-bar';
+  bar.innerHTML = buttons.map((b) => `<button data-a="${b.a}" title="${b.t}" aria-label="${b.t}">${b.i}</button>`).join('');
+  return bar;
+}
+
+// Inline viewer: the <pre.mermaid> becomes an interactive stage with a toolbar.
+function enhanceDiagram(pre) {
   const svg = pre.querySelector('svg');
   if (!svg) return;
-  if (!zoomEl) zoomEl = buildZoom();
-  zoomState = { svg, parent: pre, style: svg.getAttribute('style') || '' };
-  svg.setAttribute('style', 'width:84vw;height:auto;max-width:none;max-height:none;display:block;');
-  zoomEl.content.appendChild(svg);
-  zoomEl.reset();
-  zoomEl.overlay.classList.remove('hidden');
+  pre.classList.add('mmd-stage');
+  const h = Math.min(Math.max(svg.getBoundingClientRect().height || 300, 180), 520);
+  pre.style.height = h + 'px';
+
+  const bar = toolbar([
+    { a: 'out', t: 'Zoom out', i: '−' },
+    { a: 'reset', t: 'Reset', i: '⟲' },
+    { a: 'in', t: 'Zoom in', i: '＋' },
+    { a: 'mode', t: 'Toggle pan / select text', i: MODE_ICON.pan },
+    { a: 'full', t: 'Fullscreen', i: '⤢' },
+  ]);
+  pre.appendChild(bar);
+  const pz = makePanZoom(pre, () => (fsState && fsState.pre === pre ? null : pre.querySelector('svg')));
+  pre._pz = pz;
+  bar.addEventListener('click', (e) => {
+    const a = e.target.dataset.a;
+    if (!a) return;
+    e.stopPropagation();
+    if (a === 'in') pz.zoomIn();
+    else if (a === 'out') pz.zoomOut();
+    else if (a === 'reset') pz.reset();
+    else if (a === 'mode') e.target.textContent = MODE_ICON[pz.toggleMode()];
+    else if (a === 'full') openFullscreen(pre);
+  });
 }
-function closeZoom() {
-  if (zoomState) {
-    zoomState.svg.setAttribute('style', zoomState.style);
-    zoomState.parent.appendChild(zoomState.svg);
-    zoomState = null;
+
+// Fullscreen overlay: reuses the same pan/zoom, holds the moved SVG.
+let fsEl = null;
+let fsState = null;
+function buildFullscreen() {
+  const overlay = document.createElement('div');
+  overlay.id = 'mmd-full';
+  overlay.className = 'mmd-full hidden';
+  overlay.innerHTML = `<div class="mmd-fullbar"></div><div class="mmd-fullstage"><div class="mmd-fullcontent"></div></div>`;
+  document.body.appendChild(overlay);
+  const stage = overlay.querySelector('.mmd-fullstage');
+  const content = overlay.querySelector('.mmd-fullcontent');
+  const pz = makePanZoom(stage, () => content.querySelector('svg'));
+  const bar = toolbar([
+    { a: 'out', t: 'Zoom out', i: '−' },
+    { a: 'reset', t: 'Reset', i: '⟲' },
+    { a: 'in', t: 'Zoom in', i: '＋' },
+    { a: 'mode', t: 'Toggle pan / select text', i: MODE_ICON.pan },
+    { a: 'close', t: 'Close (Esc)', i: '✕' },
+  ]);
+  overlay.querySelector('.mmd-fullbar').replaceWith(bar);
+  bar.classList.add('mmd-fullbar');
+  bar.addEventListener('click', (e) => {
+    const a = e.target.dataset.a;
+    if (!a) return;
+    if (a === 'in') pz.zoomIn();
+    else if (a === 'out') pz.zoomOut();
+    else if (a === 'reset') pz.reset();
+    else if (a === 'mode') e.target.textContent = MODE_ICON[pz.toggleMode()];
+    else if (a === 'close') closeFullscreen();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFullscreen(); });
+  return { overlay, content, pz, modeBtn: bar.querySelector('[data-a="mode"]') };
+}
+function openFullscreen(pre) {
+  const svg = pre.querySelector('svg');
+  if (!svg) return;
+  if (!fsEl) fsEl = buildFullscreen();
+  fsState = { svg, pre, style: svg.getAttribute('style') || '' };
+  svg.setAttribute('style', 'width:84vw;height:auto;max-width:none;max-height:none;display:block;');
+  fsEl.content.appendChild(svg);
+  fsEl.pz.setMode('pan');
+  fsEl.modeBtn.textContent = MODE_ICON.pan;
+  fsEl.pz.reset();
+  fsEl.overlay.classList.remove('hidden');
+}
+function closeFullscreen() {
+  if (fsState) {
+    fsState.svg.setAttribute('style', fsState.style);
+    fsState.pre.appendChild(fsState.svg);
+    fsState.pre._pz?.reset();
+    fsState = null;
   }
-  zoomEl?.overlay.classList.add('hidden');
+  fsEl?.overlay.classList.add('hidden');
 }
 
 // ── Collapsible sections ─────────────────────────────────────────────────────

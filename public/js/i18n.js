@@ -47,7 +47,7 @@ function flagMallorca() {
 
 export const translations = {
   es: {
-    'subtitle': '<strong>¿Nuevo por aquí?</strong> Esta página <strong>es</strong> una plantilla: un esquema listo para copiar y construir aplicaciones web. En vez de describirla en papel, todo funciona en vivo: alojada gratis en Vercel, con AWS DynamoDB detrás, y con un panel integrado que muestra en tiempo real quién la visita. <strong>Infranettone</strong> la creó para demostrar cómo lanzar aplicaciones reales de producción rápido y a coste casi cero. Recorre las pestañas para ver cómo encaja cada pieza, cómo se despliega, y para probarla tú mismo.',
+    'subtitle': '<strong>¿Nuevo por aquí?</strong> Esta página <strong>es</strong> una plantilla: un esquema listo para copiar y construir aplicaciones web. En vez de describirla en papel, todo funciona en vivo: alojada gratis en Vercel, con AWS DynamoDB detrás, y con un panel integrado que muestra en tiempo real quién la visita. <a href="https://infranettone.com" target="_blank" rel="noopener"><strong>Infranettone</strong></a> la creó para demostrar cómo lanzar aplicaciones reales de producción rápido y a coste casi cero. Recorre las pestañas para ver cómo encaja cada pieza y cómo se despliega — o ve directo al <a href="https://github.com/infranettone/infranettone-template-vercel-express-dynamodb" target="_blank" rel="noopener">código fuente en GitHub</a>, hecho por <a href="https://github.com/radamuz" target="_blank" rel="noopener">Raúl Adamuz</a>.',
     'tab.arch': '🏗️ Arquitectura',
     'tab.conn': '🔌 Conexiones (en vivo)',
     'tab.demo': '🧪 Demo CRUD',
@@ -287,7 +287,7 @@ npm run seed</pre>
   },
 
   ca: {
-    'subtitle': '<strong>¿Nou per aquí?</strong> Aquesta pàgina <strong>és</strong> una plantilla: un esquema llest per copiar i construir aplicacions web. En lloc de descriure-la en paper, tot funciona en viu: allotjada de franc a Vercel, amb AWS DynamoDB darrere, i amb un panell integrat que mostra en temps real qui la visita. <strong>Infranettone</strong> la va crear per demostrar com llançar aplicacions reals de producció ràpid i a cost quasi zero. Recorre ses pestanyes per veure com encaixa cada peça, com es desplega, i per provar-la tu mateix.',
+    'subtitle': '<strong>¿Nou per aquí?</strong> Aquesta pàgina <strong>és</strong> una plantilla: un esquema llest per copiar i construir aplicacions web. En lloc de descriure-la en paper, tot funciona en viu: allotjada de franc a Vercel, amb AWS DynamoDB darrere, i amb un panell integrat que mostra en temps real qui la visita. <a href="https://infranettone.com" target="_blank" rel="noopener"><strong>Infranettone</strong></a> la va crear per demostrar com llançar aplicacions reals de producció ràpid i a cost quasi zero. Recorre ses pestanyes per veure com encaixa cada peça i com es desplega — o ves directe as <a href="https://github.com/infranettone/infranettone-template-vercel-express-dynamodb" target="_blank" rel="noopener">codi font a GitHub</a>, fet per <a href="https://github.com/radamuz" target="_blank" rel="noopener">Raúl Adamuz</a>.',
     'tab.arch': '🏗️ Arquitectura',
     'tab.conn': '🔌 Connexions (en viu)',
     'tab.demo': '🧪 Demo CRUD',
