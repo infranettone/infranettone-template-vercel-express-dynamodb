@@ -1,7 +1,65 @@
-// Lógica del showcase: pestañas, panel de estado en vivo y demo CRUD.
+// Lógica del showcase: idiomas, pestañas, panel de estado en vivo y demo CRUD.
 // Sin frameworks: fetch + DOM, para que la plantilla sea legible de un vistazo.
 
+import { LANGS, translations, jsDefaults } from './i18n.js';
+
 const $ = (sel) => document.querySelector(sel);
+
+// ── Idiomas ─────────────────────────────────────────────────────────────────
+// El inglés vive en el HTML; al cambiar a otro idioma se guarda el original
+// para poder restaurarlo. Preferencia persistida en localStorage.
+let lang = localStorage.getItem('lang') || 'en';
+if (!LANGS[lang]) lang = 'en';
+const originals = new Map();
+
+function t(key) {
+  return (translations[lang] && translations[lang][key]) || jsDefaults[key] || key;
+}
+
+function applyLang(newLang) {
+  lang = newLang;
+  localStorage.setItem('lang', lang);
+  document.documentElement.lang = lang;
+  const dict = translations[lang] || {};
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    if (!originals.has(key)) originals.set(key, el.innerHTML);
+    el.innerHTML = dict[key] !== undefined ? dict[key] : originals.get(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    if (!originals.has(key)) originals.set(key, el.placeholder);
+    el.placeholder = dict[key] !== undefined ? dict[key] : originals.get(key);
+  });
+  renderLangSwitcher();
+  // Re-pintar las zonas generadas por JS con las cadenas del idioma nuevo.
+  if (lastStatus) paintStatus(lastStatus);
+  if (lastItems) paintItems(lastItems);
+}
+
+function renderLangSwitcher() {
+  const box = $('#lang-switcher');
+  box.innerHTML = `
+    <button id="lang-btn" class="lang-btn" title="${LANGS[lang].name}">
+      <span class="flag">${LANGS[lang].flag}</span>
+      <span class="lang-code">${lang.toUpperCase()}</span>
+      <span class="caret">▾</span>
+    </button>
+    <div id="lang-menu" class="lang-menu hidden">
+      ${Object.entries(LANGS).map(([code, l]) => `
+        <button data-lang="${code}" class="${code === lang ? 'current' : ''}">
+          <span class="flag">${l.flag}</span> ${l.name}
+        </button>`).join('')}
+    </div>`;
+  $('#lang-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#lang-menu').classList.toggle('hidden');
+  });
+  box.querySelectorAll('[data-lang]').forEach((b) =>
+    b.addEventListener('click', () => applyLang(b.dataset.lang)));
+}
+
+document.addEventListener('click', () => $('#lang-menu')?.classList.add('hidden'));
 
 // ── Diagramas Mermaid ───────────────────────────────────────────────────────
 // Solo se renderizan los diagramas de la pestaña visible: renderizar dentro
@@ -27,78 +85,88 @@ document.querySelectorAll('#tabs button').forEach((btn) => {
 });
 
 // ── Estado de conexiones ────────────────────────────────────────────────────
+let lastStatus = null;
+
 function statCard(label, value, cls = '') {
   return `<div class="stat ${cls}"><div class="label">${label}</div><div class="value">${value}</div></div>`;
 }
 
-async function loadStatus() {
-  const panel = $('#status-panel');
-  const raw = $('#status-raw');
+function paintStatus(s) {
   const badge = $('#mode-badge');
+  const dynOk = s.dynamo.reachable;
+  const mode = s.storage.mode;
+  badge.textContent = mode === 'dynamodb'
+    ? t('js.badge.dynamo').replace('{table}', s.storage.table).replace('{region}', s.storage.region)
+    : t('js.badge.memory');
+  badge.className = 'badge ' + (mode === 'dynamodb' ? 'ok' : 'warn');
+
+  const envRows = Object.entries(s.env)
+    .map(([k, v]) => `${v ? '✅' : '—'} ${k}`)
+    .join('<br/>');
+
+  $('#status-panel').innerHTML = [
+    statCard(t('js.stat.mode'), mode.toUpperCase(), mode === 'dynamodb' ? 'ok' : 'warn'),
+    statCard(t('js.stat.dynamo'), dynOk
+      ? `✅ ${s.dynamo.tableStatus} · ${s.dynamo.latencyMs} ms`
+      : (s.dynamo.enabled ? t('js.stat.noaccess') : t('js.stat.disabled')),
+      dynOk ? 'ok' : (s.dynamo.enabled ? 'err' : 'warn')),
+    statCard(t('js.stat.detail'), s.dynamo.detail || '—'),
+    statCard(t('js.stat.platform'), s.runtime.platform + (s.runtime.region ? ` · ${s.runtime.region}` : '')),
+    statCard('Node', s.runtime.node),
+    statCard(t('js.stat.uptime'), s.runtime.uptimeSeconds + ' s'),
+    statCard(t('js.stat.env'), envRows),
+  ].join('');
+  $('#status-raw').textContent = JSON.stringify(s, null, 2);
+}
+
+async function loadStatus() {
   try {
-    const s = await fetch('/api/status').then((r) => r.json());
-    raw.textContent = JSON.stringify(s, null, 2);
-
-    const dynOk = s.dynamo.reachable;
-    const mode = s.storage.mode;
-    badge.textContent = mode === 'dynamodb'
-      ? `● Persistencia: DynamoDB (${s.storage.table} · ${s.storage.region})`
-      : '● Persistencia: memoria (sin credenciales AWS)';
-    badge.className = 'badge ' + (mode === 'dynamodb' ? 'ok' : 'warn');
-
-    const envRows = Object.entries(s.env)
-      .map(([k, v]) => `${v ? '✅' : '—'} ${k}`)
-      .join('<br/>');
-
-    panel.innerHTML = [
-      statCard('Modo de almacenamiento', mode.toUpperCase(), mode === 'dynamodb' ? 'ok' : 'warn'),
-      statCard('DynamoDB', dynOk
-        ? `✅ ${s.dynamo.tableStatus} · ${s.dynamo.latencyMs} ms`
-        : (s.dynamo.enabled ? `❌ sin acceso` : '— desactivado'),
-        dynOk ? 'ok' : (s.dynamo.enabled ? 'err' : 'warn')),
-      statCard('Detalle', s.dynamo.detail || '—'),
-      statCard('Plataforma', s.runtime.platform + (s.runtime.region ? ` · ${s.runtime.region}` : '')),
-      statCard('Node', s.runtime.node),
-      statCard('Uptime del proceso', s.runtime.uptimeSeconds + ' s'),
-      statCard('Variables de entorno', envRows),
-    ].join('');
+    lastStatus = await fetch('/api/status').then((r) => r.json());
+    paintStatus(lastStatus);
   } catch (err) {
-    panel.innerHTML = statCard('Error', String(err), 'err');
+    $('#status-panel').innerHTML = statCard(t('js.error'), String(err), 'err');
   }
 }
 
 $('#refresh-status').addEventListener('click', loadStatus);
 
 // ── Demo CRUD ───────────────────────────────────────────────────────────────
+let lastItems = null;
+
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 }
 
-async function loadItems() {
+function paintItems(items) {
   const box = $('#items-list');
+  if (!items.length) {
+    box.innerHTML = `<p class="hint">${t('js.items.empty')}</p>`;
+    return;
+  }
+  box.innerHTML = '<ul class="items">' + items.map((i) => `
+    <li>
+      <div>
+        <div>${escapeHtml(i.text)}</div>
+        <div class="meta">${i.id} · ${new Date(i.createdAt).toLocaleString()}</div>
+      </div>
+      <button class="btn danger" data-del="${i.id}">${t('js.items.delete')}</button>
+    </li>`).join('') + '</ul>';
+  box.querySelectorAll('[data-del]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      await fetch(`/api/items/${b.dataset.del}`, { method: 'DELETE' });
+      loadItems();
+    }));
+}
+
+async function loadItems() {
   try {
     const { items } = await fetch('/api/items').then((r) => r.json());
-    if (!items.length) {
-      box.innerHTML = '<p class="hint">No hay registros todavía. Añade el primero arriba 👆</p>';
-      return;
-    }
-    box.innerHTML = '<ul class="items">' + items.map((i) => `
-      <li>
-        <div>
-          <div>${escapeHtml(i.text)}</div>
-          <div class="meta">${i.id} · ${new Date(i.createdAt).toLocaleString()}</div>
-        </div>
-        <button class="btn danger" data-del="${i.id}">🗑 borrar</button>
-      </li>`).join('') + '</ul>';
-    box.querySelectorAll('[data-del]').forEach((b) =>
-      b.addEventListener('click', async () => {
-        await fetch(`/api/items/${b.dataset.del}`, { method: 'DELETE' });
-        loadItems();
-      }));
+    lastItems = items;
+    paintItems(items);
   } catch (err) {
-    box.innerHTML = `<p class="hint">Error cargando registros: ${err}</p>`;
+    $('#items-list').innerHTML = `<p class="hint">${t('js.items.loaderr')} ${err}</p>`;
   }
 }
 
@@ -116,7 +184,7 @@ $('#add-form').addEventListener('submit', async (e) => {
     input.value = '';
     loadItems();
   } else {
-    alert('Error: ' + ((await res.json()).error || res.status));
+    alert(t('js.error') + ': ' + ((await res.json()).error || res.status));
   }
 });
 
@@ -125,5 +193,6 @@ $('#curl-examples').textContent = $('#curl-examples').textContent
   .replaceAll('BASE', window.location.origin);
 
 // ── Arranque ────────────────────────────────────────────────────────────────
+applyLang(lang);
 loadStatus();
 loadItems();

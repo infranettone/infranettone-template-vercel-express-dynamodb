@@ -78,5 +78,5 @@ test('DELETE de id inexistente devuelve 404', async () => {
 test('sirve el frontend estático en /', async () => {
   const res = await fetch(`${base}/`);
   assert.strictEqual(res.status, 200);
-  assert.match(await res.text(), /Plantilla/);
+  assert.match(await res.text(), /vedtemplate/);
 });
