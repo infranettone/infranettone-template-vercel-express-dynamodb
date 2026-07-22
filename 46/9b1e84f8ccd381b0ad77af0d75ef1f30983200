@@ -1,0 +1,52 @@
+public/js/main.js
+  s_896e0e381cf026::t_8fb447bad1e122 78,89
+src/services/trafficService.js
+  s_896e0e381cf026::t_9d0d4564c1d00e 355-358,363-366,370-379,386
+  s_896e0e381cf026::t_d5e8332ed4b6d9 160-163
+  s_896e0e381cf026::t_c157ff028980d0 521
+  s_896e0e381cf026::t_5bf693ee72f9c8 508-509
+public/js/i18n.js
+  s_896e0e381cf026::t_4a3f43661b441f 243-247
+  s_896e0e381cf026::t_5df5073084e4ef 63-64,298-299
+  s_896e0e381cf026::t_93968348b80ff8 477-481
+  s_896e0e381cf026::t_f379607875e778 564-568
+README.md
+  s_896e0e381cf026::t_9fce180ba6bfd7 188-198
+  s_896e0e381cf026::t_8fb447bad1e122 18
+  s_896e0e381cf026::t_60c8da5ccdd33b 75,207-208,234
+public/index.html
+  s_896e0e381cf026::t_8fb447bad1e122 97-99,101,107,203,268,294
+  s_896e0e381cf026::t_aab01f796ea1af 220,228-230
+  s_896e0e381cf026::t_ad6c13c27b9880 231
+infra/dynamodb.yml
+  s_896e0e381cf026::t_673b40cc3401e8 18-21,30-37,43-51
+public/styles/base.css
+  s_896e0e381cf026::t_7f7a7beaa73856 149-171
+public/js/traffic.js
+  s_896e0e381cf026::t_3ab2c8b5cd3eb1 383-387,391-392,396-397
+  s_896e0e381cf026::t_76ef9a78a5f9a2 97,111,115-140
+  s_896e0e381cf026::t_03ee831d822e75 141,231,236,244,248-303
+  s_896e0e381cf026::t_6c2f3a82218f47 22,26-27,32-43
+  s_896e0e381cf026::t_d11248ae964a38 449,452-453
+  s_896e0e381cf026::t_aff7d5f11e0849 465
+  s_896e0e381cf026::t_095c35e42192be 44
+  s_896e0e381cf026::t_44e4d67daf69c5 304
+tests/traffic.test.js
+  s_896e0e381cf026::t_2b06453286fb26 121-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "469b1e84f8ccd381b0ad77af0d75ef1f30983200",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
