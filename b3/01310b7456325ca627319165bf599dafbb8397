@@ -1,0 +1,42 @@
+README.md
+  s_896e0e381cf026::t_a92aa4d811c376 1,4-8
+  s_896e0e381cf026::t_3fdda0c18b0d30 104-155
+  s_896e0e381cf026::t_57d295b35b1617 30,95
+public/index.html
+  s_896e0e381cf026::t_2aa67a6c6b2536 18
+  s_896e0e381cf026::t_4e300c80d2692e 6-7
+  s_896e0e381cf026::t_9a18f74d4702f6 219-253
+  s_896e0e381cf026::t_65424a41db5a31 53,204
+package.json
+  s_896e0e381cf026::t_b81f3d4e15f326 2
+public/favicon.svg
+  s_896e0e381cf026::t_70dbc7cd4b6e33 1-4
+.env.example
+  s_896e0e381cf026::t_19469afe0087fa 8
+.github/workflows/deploy-infra.yml
+  s_896e0e381cf026::t_023ae170c5398e 15-16
+infra/dynamodb.yml
+  s_896e0e381cf026::t_fda52d102f5def 7
+scripts/setup-aws.sh
+  s_896e0e381cf026::t_a392eb1fb9266e 20-22
+scripts/setup-github-secrets.sh
+  s_896e0e381cf026::t_06dc73c7bf4da2 16-18
+src/config/dynamo.js
+  s_896e0e381cf026::t_af171b4f973da2 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b301310b7456325ca627319165bf599dafbb8397",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
