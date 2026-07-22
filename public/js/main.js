@@ -65,15 +65,81 @@ function renderLangSwitcher() {
 document.addEventListener('click', () => $('#lang-menu')?.classList.add('hidden'));
 
 // ── Mermaid diagrams ────────────────────────────────────────────────────────
-// Only the visible tab's diagrams are rendered: rendering inside a
-// display:none container produces "translate(undefined, NaN)".
-async function renderDiagrams(section) {
+// Only VISIBLE diagrams are rendered: rendering inside a display:none container
+// (hidden tab or collapsed section) produces "translate(undefined, NaN)".
+// offsetParent is null for hidden elements, so we skip those and render them
+// later, when their tab is shown or their section is expanded.
+async function renderDiagrams(root) {
   if (!window.mermaid) return; // still loading; the mermaid-ready event retries
-  const pending = section.querySelectorAll('pre.mermaid:not([data-processed])');
+  const pending = [...root.querySelectorAll('pre.mermaid:not([data-processed])')]
+    .filter((el) => el.offsetParent !== null);
   if (pending.length) await window.mermaid.run({ nodes: pending });
 }
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
+
+// ── Collapsible sections ─────────────────────────────────────────────────────
+// Every top-level h2/h3 in a tab becomes a toggle for the content beneath it
+// (up to the next header). Collapsed state is persisted in localStorage, like
+// the language. The chevron is a CSS pseudo-element on the header, so it
+// survives the innerHTML swap that language switching does to translated text.
+const collapsed = new Set(JSON.parse(localStorage.getItem('vt-collapsed') || '[]'));
+const saveCollapsed = () => localStorage.setItem('vt-collapsed', JSON.stringify([...collapsed]));
+
+function setupCollapsibles() {
+  document.querySelectorAll('section.tab').forEach((tab) => {
+    let idx = 0;
+    [...tab.children].forEach((node) => {
+      if (node.tagName !== 'H2' && node.tagName !== 'H3') return;
+      const id = `${tab.id}:${idx++}`;
+      const body = document.createElement('div');
+      body.className = 'sec-body';
+      let sib = node.nextElementSibling;
+      while (sib && sib.tagName !== 'H2' && sib.tagName !== 'H3') {
+        const next = sib.nextElementSibling;
+        body.appendChild(sib);
+        sib = next;
+      }
+      node.after(body);
+      node.classList.add('sec-h');
+      node.dataset.collapseId = id;
+      node.setAttribute('role', 'button');
+      node.setAttribute('tabindex', '0');
+      const apply = (isCollapsed) => {
+        node.classList.toggle('collapsed', isCollapsed);
+        body.classList.toggle('hidden', isCollapsed);
+        isCollapsed ? collapsed.add(id) : collapsed.delete(id);
+      };
+      apply(collapsed.has(id));
+      const toggle = () => {
+        const willCollapse = !node.classList.contains('collapsed');
+        apply(willCollapse);
+        saveCollapsed();
+        if (!willCollapse) renderDiagrams(body);
+      };
+      node.addEventListener('click', toggle);
+      node.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  });
+}
+
+function setAllCollapsed(isCollapsed) {
+  const tab = $('section.tab.active');
+  if (!tab) return;
+  tab.querySelectorAll('.sec-h').forEach((h) => {
+    const body = h.nextElementSibling;
+    h.classList.toggle('collapsed', isCollapsed);
+    body.classList.toggle('hidden', isCollapsed);
+    isCollapsed ? collapsed.add(h.dataset.collapseId) : collapsed.delete(h.dataset.collapseId);
+    if (!isCollapsed) renderDiagrams(body);
+  });
+  saveCollapsed();
+}
+
+$('#collapse-all')?.addEventListener('click', () => setAllCollapsed(true));
+$('#expand-all')?.addEventListener('click', () => setAllCollapsed(false));
 
 // ── Tabs (with hash deep-linking: /#traffic) ────────────────────────────────
 function activateTab(tab) {
@@ -206,6 +272,7 @@ $('#curl-examples').textContent = $('#curl-examples').textContent
 
 // ── Startup ─────────────────────────────────────────────────────────────────
 applyLang(lang);
+setupCollapsibles();
 loadStatus();
 loadItems();
 // Initial deep-link: if the URL carries #<tab>, open that tab.

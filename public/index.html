@@ -103,6 +103,11 @@
     <button data-tab="api" data-i18n="tab.api">📚 API &amp; Tests</button>
   </nav>
 
+  <div id="section-tools">
+    <button id="collapse-all" class="tool-btn" data-i18n="tools.collapse">⊟ Collapse all</button>
+    <button id="expand-all" class="tool-btn" data-i18n="tools.expand">⊞ Expand all</button>
+  </div>
+
   <!-- ═══════════════ ARCHITECTURE ═══════════════ -->
   <section id="tab-architecture" class="tab active">
     <h2 data-i18n="arch.h.overview">Overview</h2>
@@ -229,6 +234,7 @@ flowchart TD
     <p class="hint" data-i18n="traffic.p.map">Bubbles sized by number of accesses, placed at each country's location. Click one to filter the whole dashboard by that country (served efficiently from the DynamoDB GSI).</p>
     <div class="card"><div id="tr-map">…</div></div>
 
+    <h3 data-i18n="traffic.h.breakdowns">📊 Breakdowns</h3>
     <div class="tr-cols">
       <div class="card"><h3 data-i18n="traffic.h.countries">🌍 Top countries</h3><div id="tr-countries">…</div></div>
       <div class="card"><h3 data-i18n="traffic.h.paths">📄 Top pages</h3><div id="tr-paths">…</div></div>

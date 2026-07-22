@@ -18,13 +18,40 @@ const t = (k) => tr(lang(), k);
 const C = { human: '#3987e5', bot: '#d95926', s3: '#199e70', s4: '#c98500', s5: '#d55181' };
 
 // UI state (survives re-renders; never triggers a fetch on its own except load()).
+const DEFAULTS = { range: '24h', from: '', to: '', limit: 500, auto: false, autoSecs: 15 };
 const ui = {
-  range: '24h', from: '', to: '', limit: 500, country: '', auto: false,
+  ...DEFAULTS, country: '',
   feed: { sort: { col: 'ts', dir: 'desc' }, page: 1, size: 25, filter: 'all', search: '' },
   visitors: { sort: { col: 'lastSeen', dir: 'desc' }, page: 1, size: 25 },
 };
 let autoTimer = null;
-const AUTO_MS = 15000;
+
+// Persist the toolbar choices in localStorage (like the language). Country and
+// per-table sort/page are intentionally per-session, not persisted.
+function savePrefs() {
+  localStorage.setItem('vt-traffic', JSON.stringify({
+    range: ui.range, from: ui.from, to: ui.to, limit: ui.limit, auto: ui.auto, autoSecs: ui.autoSecs,
+  }));
+}
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem('vt-traffic') || '{}');
+    if (RANGES.includes(p.range)) ui.range = p.range;
+    if (typeof p.from === 'string') ui.from = p.from;
+    if (typeof p.to === 'string') ui.to = p.to;
+    if (LIMITS.includes(p.limit)) ui.limit = p.limit;
+    if (typeof p.auto === 'boolean') ui.auto = p.auto;
+    if (Number(p.autoSecs) >= 3) ui.autoSecs = Math.min(Number(p.autoSecs), 3600);
+  } catch { /* ignore corrupt prefs */ }
+}
+function resetPrefs() {
+  Object.assign(ui, DEFAULTS);
+  ui.country = '';
+  setAuto(false);
+  savePrefs();
+  renderControls();
+  load();
+}
 
 const RANGES = ['1h', '24h', '7d', '30d', '90d', '1y', 'custom'];
 const LIMITS = [100, 250, 500, 1000, 2000];
@@ -95,30 +122,47 @@ function renderControls() {
     </div>
     <button id="tr-refresh" class="btn">${t('tr.refresh')}</button>
     <label class="tr-live"><input type="checkbox" id="tr-auto" ${ui.auto ? 'checked' : ''} /> ${t('tr.live')}</label>
+    <div class="ctl tr-interval ${ui.auto ? '' : 'hidden'}">
+      <label>${t('tr.every')}</label>
+      <span class="secs-wrap"><input type="number" id="tr-secs" min="3" max="3600" value="${ui.autoSecs}" /><span class="secs-unit">s</span></span>
+    </div>
+    <button id="tr-reset" class="btn" title="${t('tr.reset')}">↺ ${t('tr.reset')}</button>
     <button id="tr-sim" class="btn primary">${t('tr.simulate')}</button>
     <span id="tr-you" class="tr-you"></span>`;
 
   $('#tr-range').addEventListener('change', (e) => {
     ui.range = e.target.value;
     $('.tr-custom').classList.toggle('hidden', ui.range !== 'custom');
+    savePrefs();
     if (ui.range !== 'custom') load();
   });
-  $('#tr-limit').addEventListener('change', (e) => { ui.limit = Number(e.target.value); load(); });
-  const custom = () => { ui.from = $('#tr-from').value; ui.to = $('#tr-to').value; if (ui.from) load(); };
+  $('#tr-limit').addEventListener('change', (e) => { ui.limit = Number(e.target.value); savePrefs(); load(); });
+  const custom = () => { ui.from = $('#tr-from').value; ui.to = $('#tr-to').value; savePrefs(); if (ui.from) load(); };
   $('#tr-from')?.addEventListener('change', custom);
   $('#tr-to')?.addEventListener('change', custom);
   $('#tr-refresh').addEventListener('click', load);
   $('#tr-auto').addEventListener('change', (e) => setAuto(e.target.checked));
+  $('#tr-secs').addEventListener('change', (e) => {
+    ui.autoSecs = Math.min(Math.max(Number(e.target.value) || 15, 3), 3600);
+    e.target.value = ui.autoSecs;
+    savePrefs();
+    if (ui.auto) setAuto(true); // restart the timer with the new interval
+  });
+  $('#tr-reset').addEventListener('click', resetPrefs);
   $('#tr-sim').addEventListener('click', onSimulate);
   paintYou();
 }
 
 // Auto-refresh: OFF by default. When on, it only calls load() (read-only GET)
-// on a timer — it NEVER simulates. Toggling it off clears the timer.
+// on a timer at the user's chosen interval — it NEVER simulates. Toggling off
+// clears the timer. The interval input appears only while Live is on.
 function setAuto(on) {
   ui.auto = on;
   if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-  if (on) autoTimer = setInterval(load, AUTO_MS);
+  if (on) autoTimer = setInterval(load, ui.autoSecs * 1000);
+  $('.tr-interval')?.classList.toggle('hidden', !on);
+  const cb = $('#tr-auto'); if (cb) cb.checked = on;
+  savePrefs();
 }
 
 // Country filter chip (set by clicking a bar in the map or Top countries).
@@ -481,7 +525,10 @@ let wired = false;
 export function initTraffic() {
   if (!wired) {
     wired = true;
+    loadPrefs();
     renderControls();
+    if (ui.range === 'custom') $('.tr-custom')?.classList.remove('hidden');
+    if (ui.auto) setAuto(true); // restore Live mode + timer from saved prefs
     window.addEventListener('vt-lang', () => { renderControls(); if (lastDash) { paint(lastDash); renderVisitors(); } });
     window.addEventListener('vt-tracked', () => { paintYou(); renderVisitors(); });
   }

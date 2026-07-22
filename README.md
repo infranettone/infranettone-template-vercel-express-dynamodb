@@ -191,7 +191,10 @@ It's shown in the **📡 Traffic** tab of the showcase.
   million-row table never overloads the page. Adaptive series buckets (hourly/daily/monthly).
 - **Filter, sort, paginate, export**: filter the feed (all/humans/bots) and free-text search;
   click any column to sort; paginate both tables; export the current view to CSV/JSON. Optional
-  "Live" auto-refresh (off by default — it only reads, never simulates).
+  "Live" auto-refresh (off by default — it only reads, never simulates) with a customizable
+  interval and a "Reset defaults" button. Range/limit/Live prefs persist in `localStorage`.
+- **Collapsible sections**: every section title collapses/expands (chevron), with "Collapse all"
+  / "Expand all" under the tabs; collapsed state is remembered in `localStorage` too.
 - **World map + country filter**: bubbles at country centroids; click one (or a Top-Country bar)
   to filter the whole dashboard by country. At scale this is served by a **GSI** (`gsi1pk =
   "C#<country>"`), so a country query reads only that country's key range.

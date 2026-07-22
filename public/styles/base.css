@@ -76,6 +76,24 @@ nav#tabs button:hover { color: var(--text); }
 section.tab { display: none; max-width: 1000px; margin: 0 auto; padding: .5rem 1.5rem 3rem; }
 section.tab.active { display: block; }
 
+/* Collapse/expand-all toolbar under the tabs */
+#section-tools { max-width: 1000px; margin: .4rem auto -.2rem; padding: 0 1.5rem; display: flex; justify-content: flex-end; gap: .4rem; }
+.tool-btn {
+  background: var(--panel2); color: var(--muted); border: 1px solid var(--border);
+  border-radius: 7px; padding: .25rem .6rem; font-size: .78rem; cursor: pointer;
+}
+.tool-btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* Collapsible section headers */
+.sec-h { cursor: pointer; user-select: none; }
+.sec-h::before {
+  content: '▾'; display: inline-block; width: 1em; margin-right: .3rem;
+  color: var(--muted); font-size: .8em; transition: transform .15s ease;
+}
+.sec-h:hover::before { color: var(--accent); }
+.sec-h.collapsed::before { transform: rotate(-90deg); }
+.sec-body.hidden { display: none; }
+
 .card {
   background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
   padding: 1rem; margin: .8rem 0; overflow-x: auto;
@@ -148,6 +166,9 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 .tr-you { color: var(--ok); font-size: .85rem; font-family: ui-monospace, monospace; align-self: center; }
 .tr-live { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .85rem; cursor: pointer; align-self: center; }
 .tr-live input { accent-color: var(--accent); }
+.tr-interval .secs-wrap { display: inline-flex; align-items: center; gap: .2rem; }
+.tr-interval input[type="number"] { width: 4rem; background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font-size: .88rem; }
+.tr-interval .secs-unit { color: var(--muted); font-size: .85rem; }
 
 /* Country filter chip */
 .tr-country-chip { background: var(--panel2); border: 1px solid var(--accent); border-radius: 999px; padding: .3rem .7rem; font-size: .85rem; margin: .2rem 0 .6rem; display: inline-flex; align-items: center; gap: .5rem; }
