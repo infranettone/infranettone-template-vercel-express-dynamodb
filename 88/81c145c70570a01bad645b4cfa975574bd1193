@@ -1,0 +1,40 @@
+public/styles/base.css
+  s_896e0e381cf026::t_e273efe9314318 140-175
+  s_896e0e381cf026::t_25619ffda6329a 15
+tests/traffic.test.js
+  s_896e0e381cf026::t_774d4bf161d458 94,97,99,101-128
+public/js/i18n.js
+  s_896e0e381cf026::t_29760978c70841 62,290
+  s_896e0e381cf026::t_29cb1bfccdbd2a 220,224-225,229,238-239,254-274
+  s_896e0e381cf026::t_a1bafdd54c907a 447,451-452,456,465-466,481-501
+  s_896e0e381cf026::t_242392ca66bfec 529,533-534,538,547-548,563-585
+public/js/traffic.js
+  s_896e0e381cf026::t_dbdada9ea7a5fc 1-3,7-9,20-30,53,56-60,64-117,125,131,135-142,144,146,149,156-157,162-163,165-166,177,179,186,203-260,266-297,299-301,303-308,310-321,323-332,335-337,339,341,344,348-365,372-374
+src/services/trafficService.js
+  s_896e0e381cf026::t_064ce7d49e6f02 487-490,492,501-503,505-506,514-515
+  s_896e0e381cf026::t_3bfa841bea980e 419-425,427-454,456-468,470,478-485
+  s_896e0e381cf026::t_3dd623b514a4fa 318-354,356-359,361-376
+  s_896e0e381cf026::t_f0940faaa0a829 519
+  s_896e0e381cf026::t_616f08a4985bbd 486
+public/index.html
+  s_896e0e381cf026::t_51b5178f322c07 219-220,224-225
+  s_896e0e381cf026::t_6a7481eeb0a4bf 239
+src/routes/traffic.js
+  s_896e0e381cf026::t_48bf6eb7b1b44f 6-9,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8881c145c70570a01bad645b4cfa975574bd1193",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
