@@ -25,7 +25,6 @@ const { QueryCommand, PutCommand, UpdateCommand, GetCommand } = require('@aws-sd
 const { getDocClient, isDynamoEnabled, TABLE_NAME, KEYS } = require('../config/dynamo');
 
 const EVENT_TTL_DAYS = 7;
-const MAX_SCAN = 3000;           // cap of events read for aggregation
 const SALT = process.env.TRACK_SALT || 'vedtemplate-privacy-salt';
 
 // ── In-memory store (fallback without AWS) ──────────────────────────────────
@@ -316,18 +315,65 @@ async function simulate(count = 40) {
 
 // ── Reading and aggregation ─────────────────────────────────────────────────
 
-async function recentEvents(limit = MAX_SCAN) {
-  if (!isDynamoEnabled()) {
-    return [...mem.events].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, limit);
+// Time ranges the dashboard offers (like AWS consoles): fixed spans plus a
+// custom [from, to]. Everything downstream is driven by the resolved window.
+const RANGE_SPANS = {
+  '1h': 3600e3,
+  '24h': 24 * 3600e3,
+  '7d': 7 * 86400e3,
+  '30d': 30 * 86400e3,
+  '90d': 90 * 86400e3,
+  '1y': 365 * 86400e3,
+};
+const LIMIT_MIN = 50;
+const LIMIT_MAX = 2000;   // caps the payload and bounds reads over huge tables
+
+function resolveWindow({ range = '24h', from, to } = {}) {
+  const now = Date.now();
+  if (range === 'custom' && from) {
+    const startMs = Date.parse(from);
+    const endMs = to ? Date.parse(to) : now;
+    if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && startMs < endMs) {
+      return { startMs, endMs, range: 'custom' };
+    }
   }
-  const res = await getDocClient().send(new QueryCommand({
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'pk = :pk',
-    ExpressionAttributeValues: { ':pk': KEYS.EVENT },
-    ScanIndexForward: false,
-    Limit: limit,
-  }));
-  return res.Items || [];
+  const span = RANGE_SPANS[range] || RANGE_SPANS['24h'];
+  return { startMs: now - span, endMs: now, range: RANGE_SPANS[range] ? range : '24h' };
+}
+
+function clampLimit(v) {
+  return Math.min(Math.max(Number(v) || 500, LIMIT_MIN), LIMIT_MAX);
+}
+
+// Reads events within [startMs, endMs], newest first, bounded by `limit`.
+// On DynamoDB this is a range Query on the sort key (sk = "<iso>#<id>"), so only
+// the matching key range is read — it scales to huge tables because narrowing
+// the time range narrows the scan. Paginates until it reaches `limit`.
+async function queryEvents({ startMs, endMs, limit }) {
+  const startIso = new Date(startMs).toISOString();
+  const endIso = new Date(endMs).toISOString();
+  if (!isDynamoEnabled()) {
+    return mem.events
+      .filter((e) => { const t = Date.parse(e.ts); return t >= startMs && t <= endMs; })
+      .sort((a, b) => b.ts.localeCompare(a.ts))
+      .slice(0, limit);
+  }
+  const out = [];
+  let ExclusiveStartKey;
+  let pages = 0;
+  do {
+    const res = await getDocClient().send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND sk BETWEEN :a AND :b',
+      ExpressionAttributeValues: { ':pk': KEYS.EVENT, ':a': startIso, ':b': endIso + '￿' },
+      ScanIndexForward: false,
+      Limit: Math.min(limit - out.length, 1000),
+      ExclusiveStartKey,
+    }));
+    out.push(...(res.Items || []));
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey && out.length < limit && ++pages < 50);
+  return out.slice(0, limit);
 }
 
 async function listVisitors(limit = 100) {
@@ -370,31 +416,58 @@ function redactEvent(e) {
   };
 }
 
-function bucketHourly(events, hours = 24) {
-  const now = Date.now();
-  const buckets = [];
-  for (let i = hours - 1; i >= 0; i--) {
-    const start = now - (i + 1) * 3600e3;
-    const end = now - i * 3600e3;
-    const label = new Date(end).toISOString().slice(11, 13) + 'h';
-    let human = 0, bot = 0;
-    for (const e of events) {
-      const t = Date.parse(e.ts);
-      if (t > start && t <= end) (e.isBot ? bot++ : human++);
-    }
-    buckets.push({ label, human, bot, total: human + bot });
-  }
-  return buckets;
+// Adaptive time series: the bucket unit follows the window length so the chart
+// stays readable at any range (hours for ≤2 days, days for ≤~3 months, months
+// beyond). Fills empty buckets with zeros so the axis is continuous.
+function seriesUnit(spanMs) {
+  if (spanMs <= 2 * 86400e3) return 'hour';
+  if (spanMs <= 92 * 86400e3) return 'day';
+  return 'month';
 }
-
-function windowCount(events, sinceMs, untilMs = Infinity) {
-  const now = Date.now();
-  let c = 0;
+function bucketKey(d, unit) {
+  const iso = d.toISOString();
+  if (unit === 'hour') return iso.slice(0, 13);   // YYYY-MM-DDTHH
+  if (unit === 'day') return iso.slice(0, 10);     // YYYY-MM-DD
+  return iso.slice(0, 7);                           // YYYY-MM
+}
+function bucketLabel(key, unit) {
+  if (unit === 'hour') return key.slice(11, 13) + 'h';
+  if (unit === 'day') return key.slice(5);         // MM-DD
+  return key;                                       // YYYY-MM
+}
+function floorToUnit(ms, unit) {
+  const d = new Date(ms);
+  if (unit === 'hour') d.setUTCMinutes(0, 0, 0);
+  else if (unit === 'day') d.setUTCHours(0, 0, 0, 0);
+  else { d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0); }
+  return d;
+}
+function stepUnit(d, unit) {
+  const n = new Date(d);
+  if (unit === 'hour') n.setUTCHours(n.getUTCHours() + 1);
+  else if (unit === 'day') n.setUTCDate(n.getUTCDate() + 1);
+  else n.setUTCMonth(n.getUTCMonth() + 1);
+  return n;
+}
+function buildSeries(events, startMs, endMs) {
+  const unit = seriesUnit(endMs - startMs);
+  const counts = new Map();
   for (const e of events) {
-    const age = now - Date.parse(e.ts);
-    if (age >= sinceMs && age < untilMs) c++;
+    const k = bucketKey(new Date(Date.parse(e.ts)), unit);
+    const c = counts.get(k) || { human: 0, bot: 0 };
+    e.isBot ? c.bot++ : c.human++;
+    counts.set(k, c);
   }
-  return c;
+  const buckets = [];
+  let d = floorToUnit(startMs, unit);
+  let guard = 0;
+  while (d.getTime() <= endMs && guard++ < 1500) {
+    const k = bucketKey(d, unit);
+    const c = counts.get(k) || { human: 0, bot: 0 };
+    buckets.push({ label: bucketLabel(k, unit), human: c.human, bot: c.bot, total: c.human + c.bot });
+    d = stepUnit(d, unit);
+  }
+  return { unit, buckets };
 }
 
 function pct(cur, prev) {
@@ -402,28 +475,35 @@ function pct(cur, prev) {
   return Math.round(((cur - prev) / prev) * 100);
 }
 
-async function getDashboard() {
-  const events = await recentEvents();
+// Momentum within the selected window: recent half vs older half of the loaded
+// events. Needs no extra query and answers "is it trending up right now?".
+function trendHalves(events, startMs, endMs) {
+  const mid = startMs + (endMs - startMs) / 2;
+  let recent = 0, older = 0;
+  for (const e of events) { (Date.parse(e.ts) >= mid ? recent++ : older++); }
+  return { recent, older, changePct: pct(recent, older) };
+}
+
+async function getDashboard(opts = {}) {
+  const limit = clampLimit(opts.limit);
+  const { startMs, endMs, range } = resolveWindow(opts);
+  const events = await queryEvents({ startMs, endMs, limit });
   const total = events.length;
+  const capped = total >= limit;   // hit the ceiling → there may be more in range
   const humans = events.filter((e) => !e.isBot).length;
   const bots = total - humans;
   const confirmed = events.filter((e) => e.beacon).length;
   const uniqueVisitors = new Set(events.map((e) => e.visitorId).filter(Boolean)).size;
 
-  const last1h = windowCount(events, 0, 3600e3);
-  const prev1h = windowCount(events, 3600e3, 2 * 3600e3);
-  const last24h = windowCount(events, 0, 24 * 3600e3);
-  const prev24h = windowCount(events, 24 * 3600e3, 48 * 3600e3);
-
   return {
     generatedAt: new Date().toISOString(),
     mode: isDynamoEnabled() ? 'dynamodb' : 'memory',
+    range,
+    window: { from: new Date(startMs).toISOString(), to: new Date(endMs).toISOString() },
+    limit, scanned: total, capped,
     totals: { hits: total, humans, bots, confirmedHumans: confirmed, uniqueVisitors },
-    trend: {
-      hour: { current: last1h, previous: prev1h, changePct: pct(last1h, prev1h) },
-      day: { current: last24h, previous: prev24h, changePct: pct(last24h, prev24h) },
-    },
-    hourly: bucketHourly(events, 24),
+    trend: trendHalves(events, startMs, endMs),
+    series: buildSeries(events, startMs, endMs),
     topCountries: topCounts(events, 'country'),
     topPaths: topCounts(events, 'path'),
     topReferrers: topCounts(events, 'refererHost'),
@@ -431,11 +511,12 @@ async function getDashboard() {
     os: topCounts(events, 'os', 6),
     devices: topCounts(events, 'device', 4),
     botKinds: topCounts(events, 'botKind', 6),
-    recent: events.slice(0, 30).map(redactEvent),
+    // Full ranged+limited set (redacted); the client sorts/filters/paginates it.
+    events: events.map(redactEvent),
   };
 }
 
-async function getVisitorsView(limit = 60) {
+async function getVisitorsView(limit = 200) {
   const visitors = await listVisitors(limit);
   return {
     count: visitors.length,

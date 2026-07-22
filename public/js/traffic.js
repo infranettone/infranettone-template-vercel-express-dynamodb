@@ -1,9 +1,12 @@
-// Traffic dashboard: KPIs, human/bot time series, geographic and technical
-// tops, live access feed (redacted) and visitor explorer.
+// Traffic dashboard: time-range control, adaptive human/bot series, geographic
+// and technical tops, and sortable + filterable + paginated tables (live access
+// feed and visitor explorer).
 //
 // Charts as inline SVG (no libraries): validated categorical palette, thin
 // marks with rounded ends, a 2px gap between stacked segments, legend + direct
-// labels and a tooltip on hover.
+// labels and a tooltip on hover. Tables sort/paginate on the client over the
+// range+limit-bounded set the backend returns, so it stays fast and navigable
+// even if the table grows to millions of rows (you narrow the range).
 
 import { tr } from './i18n.js';
 
@@ -14,14 +17,23 @@ const t = (k) => tr(lang(), k);
 // Palette (dark, validated with the dataviz skill validator):
 const C = { human: '#3987e5', bot: '#d95926', s3: '#199e70', s4: '#c98500', s5: '#d55181' };
 
-// Emoji flag from the ISO country code.
+// UI state (survives re-renders; never triggers a fetch on its own except load()).
+const ui = {
+  range: '24h', from: '', to: '', limit: 500,
+  feed: { sort: { col: 'ts', dir: 'desc' }, page: 1, size: 25, filter: 'all', search: '' },
+  visitors: { sort: { col: 'lastSeen', dir: 'desc' }, page: 1, size: 25 },
+};
+
+const RANGES = ['1h', '24h', '7d', '30d', '90d', '1y', 'custom'];
+const LIMITS = [100, 250, 500, 1000, 2000];
+
+// ── small helpers ────────────────────────────────────────────────────────────
 function flag(cc) {
   if (!cc || cc === 'ZZ') return '🌐';
   if (cc === 'LOCAL') return '🏠';
   if (cc.length !== 2) return '🌐';
   return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
-
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -38,75 +50,120 @@ function trendHtml(p) {
   return `<span class="trend ${cls}">${arrow} ${Math.abs(p.changePct)}%</span>`;
 }
 
-// ── Shared tooltip ──────────────────────────────────────────────────────────
+// ── shared tooltip ───────────────────────────────────────────────────────────
 let tip;
-function ensureTip() {
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.className = 'viz-tip hidden';
-    document.body.appendChild(tip);
-  }
-  return tip;
-}
 function showTip(html, x, y) {
-  const el = ensureTip();
-  el.innerHTML = html;
-  el.classList.remove('hidden');
-  el.style.left = Math.min(x + 12, window.innerWidth - el.offsetWidth - 12) + 'px';
-  el.style.top = (y + 12) + 'px';
+  if (!tip) { tip = document.createElement('div'); tip.className = 'viz-tip hidden'; document.body.appendChild(tip); }
+  tip.innerHTML = html;
+  tip.classList.remove('hidden');
+  tip.style.left = Math.min(x + 12, window.innerWidth - tip.offsetWidth - 12) + 'px';
+  tip.style.top = (y + 12) + 'px';
 }
 function hideTip() { if (tip) tip.classList.add('hidden'); }
 
-// ── KPIs ────────────────────────────────────────────────────────────────────
+// ── controls (range, custom dates, limit, refresh, simulate) ─────────────────
+function renderControls() {
+  const box = $('#tr-controls');
+  const opt = (v, cur, label) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${esc(label)}</option>`;
+  box.innerHTML = `
+    <div class="ctl">
+      <label>${t('tr.range.label')}</label>
+      <select id="tr-range">${RANGES.map((r) => opt(r, ui.range, t('tr.range.' + r))).join('')}</select>
+    </div>
+    <div class="ctl tr-custom ${ui.range === 'custom' ? '' : 'hidden'}">
+      <label>${t('tr.from')}</label><input type="datetime-local" id="tr-from" value="${ui.from}" />
+      <label>${t('tr.to')}</label><input type="datetime-local" id="tr-to" value="${ui.to}" />
+    </div>
+    <div class="ctl">
+      <label>${t('tr.limit.label')}</label>
+      <select id="tr-limit">${LIMITS.map((n) => opt(n, ui.limit, String(n))).join('')}</select>
+    </div>
+    <button id="tr-refresh" class="btn">${t('tr.refresh')}</button>
+    <button id="tr-sim" class="btn primary">${t('tr.simulate')}</button>
+    <span id="tr-you" class="tr-you"></span>`;
+
+  $('#tr-range').addEventListener('change', (e) => {
+    ui.range = e.target.value;
+    $('.tr-custom').classList.toggle('hidden', ui.range !== 'custom');
+    if (ui.range !== 'custom') load();
+  });
+  $('#tr-limit').addEventListener('change', (e) => { ui.limit = Number(e.target.value); load(); });
+  const custom = () => { ui.from = $('#tr-from').value; ui.to = $('#tr-to').value; if (ui.from) load(); };
+  $('#tr-from')?.addEventListener('change', custom);
+  $('#tr-to')?.addEventListener('change', custom);
+  $('#tr-refresh').addEventListener('click', load);
+  $('#tr-sim').addEventListener('click', onSimulate);
+  paintYou();
+}
+function paintYou() {
+  const el = $('#tr-you');
+  if (el && window.__vtVisitor) el.textContent = `${t('tr.you')} ${window.__vtVisitor}`;
+}
+
+// Simulation runs ONLY here, on explicit click, with a confirmation. Nothing in
+// this module simulates on load, on a timer, or on any automatic path.
+async function onSimulate(e) {
+  if (!window.confirm(t('tr.simulate.confirm'))) return;
+  const btn = e.currentTarget;
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = t('tr.simulating');
+  await fetch('/api/traffic/simulate', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ count: 60 }),
+  });
+  await load();
+  btn.disabled = false; btn.textContent = original;
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
 function kpi(label, value, sub = '') {
   return `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ''}</div>`;
 }
-
 function renderKpis(d) {
   const tot = d.totals;
   const humanPct = tot.hits ? Math.round((tot.humans / tot.hits) * 100) : 0;
   $('#tr-kpis').innerHTML = [
-    kpi(t('tr.kpi.hits'), tot.hits.toLocaleString()),
+    kpi(t('tr.kpi.hits'), tot.hits.toLocaleString(), d.capped ? t('tr.capped.badge') : ''),
     kpi(t('tr.kpi.unique'), tot.uniqueVisitors.toLocaleString()),
     kpi(t('tr.kpi.split'),
       `<span style="color:${C.human}">${humanPct}%</span> / <span style="color:${C.bot}">${100 - humanPct}%</span>`,
       `${tot.humans} ${t('tr.legend.human')} · ${tot.bots} ${t('tr.legend.bot')}`),
     kpi(t('tr.kpi.confirmed'), tot.confirmedHumans.toLocaleString()),
-    kpi(t('tr.kpi.trend'), trendHtml(d.trend.day), `${d.trend.day.current} ${t('tr.per24')}`),
-    kpi(t('tr.kpi.trendh'), trendHtml(d.trend.hour), `${d.trend.hour.current} ${t('tr.perh')}`),
+    kpi(t('tr.kpi.trend'), trendHtml(d.trend), t('tr.trend.sub')),
   ].join('');
 }
 
-// ── Stacked time series (24h, human vs bot) ─────────────────────────────────
-function renderHourly(hourly) {
-  const box = $('#tr-hourly');
-  const W = 720, H = 240, padL = 34, padB = 26, padT = 10, padR = 8;
-  const max = Math.max(1, ...hourly.map((h) => h.total));
-  const n = hourly.length;
+// ── adaptive stacked series ──────────────────────────────────────────────────
+function renderSeries(series) {
+  const box = $('#tr-series');
+  const data = series.buckets;
+  if (!data.length) { box.innerHTML = `<p class="hint">${t('tr.nodata')}</p>`; return; }
+  const W = 760, H = 240, padL = 34, padB = 26, padT = 10, padR = 8;
+  const max = Math.max(1, ...data.map((h) => h.total));
+  const n = data.length;
   const bw = (W - padL - padR) / n;
-  const barW = Math.min(22, bw - 4);
+  const barW = Math.max(3, Math.min(22, bw - 3));
   const y = (v) => padT + (H - padT - padB) * (1 - v / max);
-  const gap = 2; // surface gap between stacked segments
+  const gap = barW > 6 ? 2 : 0;   // surface gap between stacked segments
 
   let bars = '';
-  hourly.forEach((h, i) => {
+  data.forEach((h, i) => {
     const cx = padL + i * bw + bw / 2;
     const x = cx - barW / 2;
     const hHuman = (H - padT - padB) * (h.human / max);
     const hBot = (H - padT - padB) * (h.bot / max);
     const yHumanTop = H - padB - hHuman;
     const yBotTop = yHumanTop - hBot - (h.bot && h.human ? gap : 0);
-    if (h.human) bars += `<rect x="${x}" y="${yHumanTop}" width="${barW}" height="${Math.max(1, hHuman)}" rx="3" fill="${C.human}"/>`;
-    if (h.bot) bars += `<rect x="${x}" y="${yBotTop}" width="${barW}" height="${Math.max(1, hBot)}" rx="3" fill="${C.bot}"/>`;
-    // invisible hover zone (target larger than the mark)
+    if (h.human) bars += `<rect x="${x}" y="${yHumanTop}" width="${barW}" height="${Math.max(1, hHuman)}" rx="2" fill="${C.human}"/>`;
+    if (h.bot) bars += `<rect x="${x}" y="${yBotTop}" width="${barW}" height="${Math.max(1, hBot)}" rx="2" fill="${C.bot}"/>`;
     bars += `<rect class="hbar" x="${padL + i * bw}" y="${padT}" width="${bw}" height="${H - padT - padB}" fill="transparent"
       data-tip="${esc(`${h.label} · ${h.total} — ${h.human} ${t('tr.legend.human')} / ${h.bot} ${t('tr.legend.bot')}`)}"/>`;
   });
 
-  // axes: labels only every 4 hours to avoid clutter
+  // Show at most ~12 x labels so long ranges stay readable.
+  const every = Math.max(1, Math.ceil(n / 12));
   let ticks = '';
-  hourly.forEach((h, i) => {
-    if (i % 4 === 0) ticks += `<text x="${padL + i * bw + bw / 2}" y="${H - 8}" class="axis" text-anchor="middle">${h.label}</text>`;
+  data.forEach((h, i) => {
+    if (i % every === 0) ticks += `<text x="${padL + i * bw + bw / 2}" y="${H - 8}" class="axis" text-anchor="middle">${esc(h.label)}</text>`;
   });
   [0, Math.round(max / 2), max].forEach((v) => {
     ticks += `<line x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}" class="grid"/>`;
@@ -117,18 +174,16 @@ function renderHourly(hourly) {
     <div class="legend">
       <span><i style="background:${C.human}"></i>${t('tr.legend.human')}</span>
       <span><i style="background:${C.bot}"></i>${t('tr.legend.bot')}</span>
+      <span class="series-unit">· ${t('tr.unit.' + series.unit)}</span>
     </div>
-    <div class="viz-scroll"><svg viewBox="0 0 ${W} ${H}" class="viz" preserveAspectRatio="xMidYMid meet">
-      ${ticks}${bars}
-    </svg></div>`;
-
+    <div class="viz-scroll"><svg viewBox="0 0 ${W} ${H}" class="viz" preserveAspectRatio="xMidYMid meet">${ticks}${bars}</svg></div>`;
   box.querySelectorAll('.hbar').forEach((el) => {
     el.addEventListener('mousemove', (e) => showTip(el.dataset.tip, e.clientX, e.clientY));
     el.addEventListener('mouseleave', hideTip);
   });
 }
 
-// ── Horizontal bars (tops) ──────────────────────────────────────────────────
+// ── horizontal bars (tops) ───────────────────────────────────────────────────
 function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) {
   const box = $('#' + id);
   if (!items.length) { box.innerHTML = `<p class="hint">${t('tr.nodata')}</p>`; return; }
@@ -145,95 +200,178 @@ function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) 
   });
 }
 
-// ── Live access feed (redacted) ─────────────────────────────────────────────
+// ── reusable sortable + paginated table ──────────────────────────────────────
+// cols: [{ key, label, get(row) → sortable value, cell(row) → html, align }]
+function renderTable(box, cols, rows, state, rerender) {
+  const s = state.sort;
+  const col = cols.find((c) => c.key === s.col) || cols[0];
+  const sorted = [...rows].sort((a, b) => {
+    const va = col.get(a);
+    const vb = col.get(b);
+    if (va < vb) return s.dir === 'asc' ? -1 : 1;
+    if (va > vb) return s.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const pages = Math.max(1, Math.ceil(sorted.length / state.size));
+  state.page = Math.min(Math.max(1, state.page), pages);
+  const start = (state.page - 1) * state.size;
+  const slice = sorted.slice(start, start + state.size);
+
+  const head = cols.map((c) => {
+    const arrow = s.col === c.key ? (s.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sortable ${c.align || ''}" data-col="${c.key}">${esc(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+  const body = slice.length
+    ? slice.map((r) => '<tr class="' + (r._cls || '') + '">' + cols.map((c) => `<td class="${c.align || ''}">${c.cell(r)}</td>`).join('') + '</tr>').join('')
+    : `<tr><td colspan="${cols.length}" class="hint">${t('tr.noresults')}</td></tr>`;
+
+  const from = sorted.length ? start + 1 : 0;
+  const to = Math.min(start + state.size, sorted.length);
+  const pager = `
+    <div class="pager">
+      <span class="pager-info">${from}–${to} ${t('tr.of')} ${sorted.length}</span>
+      <label class="pager-size">${t('tr.perpage')}
+        <select class="tbl-size">${[10, 25, 50, 100].map((n) => `<option value="${n}" ${n === state.size ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      </label>
+      <span class="pager-nav">
+        <button class="btn tbl-first" ${state.page === 1 ? 'disabled' : ''}>«</button>
+        <button class="btn tbl-prev" ${state.page === 1 ? 'disabled' : ''}>‹</button>
+        <span class="pager-page">${state.page} / ${pages}</span>
+        <button class="btn tbl-next" ${state.page === pages ? 'disabled' : ''}>›</button>
+        <button class="btn tbl-last" ${state.page === pages ? 'disabled' : ''}>»</button>
+      </span>
+    </div>`;
+
+  box.innerHTML = `<div class="viz-scroll"><table class="feed"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${pager}`;
+
+  box.querySelectorAll('th.sortable').forEach((th) => th.addEventListener('click', () => {
+    const c = th.dataset.col;
+    if (s.col === c) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+    else { s.col = c; s.dir = 'asc'; }
+    state.page = 1; rerender();
+  }));
+  box.querySelector('.tbl-size').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; rerender(); });
+  box.querySelector('.tbl-first').addEventListener('click', () => { state.page = 1; rerender(); });
+  box.querySelector('.tbl-prev').addEventListener('click', () => { state.page--; rerender(); });
+  box.querySelector('.tbl-next').addEventListener('click', () => { state.page++; rerender(); });
+  box.querySelector('.tbl-last').addEventListener('click', () => { state.page = pages; rerender(); });
+}
+
+// ── live access feed ─────────────────────────────────────────────────────────
 function classBadge(e) {
   if (e.isBot) return `<span class="badge-chip bot" title="${esc(e.botReason || '')}">🤖 ${e.botKind || t('tr.bot')}</span>`;
   if (e.beacon) return `<span class="badge-chip human">🧑 ${t('tr.human')}</span>`;
   return `<span class="badge-chip unver">👤 ${t('tr.unverified')}</span>`;
 }
-
-function renderFeed(recent) {
-  const box = $('#tr-feed');
-  if (!recent.length) { box.innerHTML = `<p class="hint">${t('tr.nodata')}</p>`; return; }
-  box.innerHTML = `<div class="viz-scroll"><table class="feed">
-    <thead><tr>
-      <th>${t('tr.col.time')}</th><th>${t('tr.col.class')}</th><th>${t('tr.col.path')}</th>
-      <th>${t('tr.col.geo')}</th><th>${t('tr.col.device')}</th><th>${t('tr.col.ref')}</th><th>${t('tr.col.vid')}</th>
-    </tr></thead><tbody>
-    ${recent.map((e) => `<tr class="${e.synthetic ? 'synthetic' : ''}">
-      <td class="nowrap" title="${esc(e.ts)}">${ago(e.ts)}</td>
-      <td>${classBadge(e)}</td>
-      <td class="mono">${esc(e.method)} ${esc(e.path)}${e.sensitive.captured ? ` <span class="sens" title="Authorization / Cookie / query">🔒 ${t('tr.sensitive')}</span>` : ''}</td>
-      <td class="nowrap">${flag(e.country)} ${esc(e.country)}${e.city ? ' · ' + esc(e.city) : ''} <span class="ipm">${esc(e.ipMasked)}</span></td>
-      <td class="nowrap">${esc(e.browser)} · ${esc(e.os)} · ${esc(e.device)}</td>
-      <td class="nowrap">${e.refererHost ? esc(e.refererHost) : `<span class="muted">${t('tr.direct')}</span>`}</td>
-      <td class="mono">${esc(e.visitorId)}</td>
-    </tr>`).join('')}
-    </tbody></table></div>`;
+function feedRows() {
+  let rows = (lastDash?.events || []).slice();
+  const f = ui.feed;
+  if (f.filter === 'humans') rows = rows.filter((e) => !e.isBot);
+  else if (f.filter === 'bots') rows = rows.filter((e) => e.isBot);
+  const q = f.search.trim().toLowerCase();
+  if (q) rows = rows.filter((e) => (e.path + ' ' + e.country + ' ' + (e.city || '') + ' ' + e.visitorId + ' ' + e.refererHost + ' ' + e.browser + ' ' + e.os).toLowerCase().includes(q));
+  return rows.map((e) => ({ ...e, _cls: e.synthetic ? 'synthetic' : '' }));
+}
+function renderFeedControls() {
+  const box = $('#tr-feed-controls');
+  const f = ui.feed;
+  const chip = (v, label) => `<button class="fbtn ${f.filter === v ? 'active' : ''}" data-f="${v}">${label}</button>`;
+  box.innerHTML = `
+    <div class="fbtns">${chip('all', t('tr.filter.all'))}${chip('humans', t('tr.filter.humans'))}${chip('bots', t('tr.filter.bots'))}</div>
+    <input id="tr-search" class="tr-search" type="search" placeholder="${t('tr.search')}" value="${esc(f.search)}" />`;
+  box.querySelectorAll('.fbtn').forEach((b) => b.addEventListener('click', () => { f.filter = b.dataset.f; f.page = 1; renderFeed(); renderFeedControls(); }));
+  const inp = $('#tr-search');
+  inp.addEventListener('input', () => { f.search = inp.value; f.page = 1; renderFeed(); });
+}
+function renderFeed() {
+  const cols = [
+    { key: 'ts', label: t('tr.col.time'), align: 'nowrap', get: (r) => r.ts, cell: (r) => `<span title="${esc(r.ts)}">${ago(r.ts)}</span>` },
+    { key: 'botKind', label: t('tr.col.class'), get: (r) => (r.isBot ? '2' : r.beacon ? '0' : '1') + r.botKind, cell: (r) => classBadge(r) },
+    { key: 'path', label: t('tr.col.path'), get: (r) => r.method + r.path, cell: (r) => `<span class="mono">${esc(r.method)} ${esc(r.path)}${r.sensitive.captured ? ` <span class="sens" title="Authorization / Cookie / query">🔒 ${t('tr.sensitive')}</span>` : ''}</span>` },
+    { key: 'country', label: t('tr.col.geo'), align: 'nowrap', get: (r) => r.country + (r.city || ''), cell: (r) => `${flag(r.country)} ${esc(r.country)}${r.city ? ' · ' + esc(r.city) : ''} <span class="ipm">${esc(r.ipMasked)}</span>` },
+    { key: 'device', label: t('tr.col.device'), align: 'nowrap', get: (r) => r.os + r.browser, cell: (r) => `${esc(r.browser)} · ${esc(r.os)} · ${esc(r.device)}` },
+    { key: 'refererHost', label: t('tr.col.ref'), align: 'nowrap', get: (r) => r.refererHost || '', cell: (r) => r.refererHost ? esc(r.refererHost) : `<span class="muted">${t('tr.direct')}</span>` },
+    { key: 'visitorId', label: t('tr.col.vid'), get: (r) => r.visitorId, cell: (r) => `<span class="mono">${esc(r.visitorId)}</span>` },
+  ];
+  renderTable($('#tr-feed'), cols, feedRows(), ui.feed, renderFeed);
 }
 
-// ── Visitor explorer ────────────────────────────────────────────────────────
-async function renderVisitors() {
-  const box = $('#tr-visitors');
+// ── visitor explorer ─────────────────────────────────────────────────────────
+let visitorsData = [];
+async function loadVisitors() {
   const data = await fetch('/api/traffic/visitors').then((r) => r.json());
-  if (!data.visitors.length) { box.innerHTML = `<p class="hint">${t('tr.novisitors')}</p>`; return; }
+  visitorsData = data.visitors || [];
+  renderVisitors();
+}
+function renderVisitors() {
+  const box = $('#tr-visitors');
+  if (!visitorsData.length) { box.innerHTML = `<p class="hint">${t('tr.novisitors')}</p>`; return; }
   const me = window.__vtVisitor;
-  box.innerHTML = `<div class="viz-scroll"><table class="feed">
-    <thead><tr>
-      <th>${t('tr.v.id')}</th><th>${t('tr.col.geo')}</th><th>${t('tr.col.device')}</th>
-      <th>${t('tr.v.hits')}</th><th>${t('tr.v.human')}</th><th>${t('tr.v.first')}</th><th>${t('tr.v.last')}</th>
-    </tr></thead><tbody>
-    ${data.visitors.map((v) => `<tr class="${me && v.id.startsWith(me) ? 'is-you' : ''}">
-      <td class="mono">${esc(v.id)}${me && v.id.startsWith(me) ? ' 👈' : ''}</td>
-      <td class="nowrap">${flag(v.country)} ${esc(v.country || '—')}</td>
-      <td class="nowrap">${esc(v.browser || '—')} · ${esc(v.os || '—')} · ${esc(v.device || '—')}</td>
-      <td>${v.hits}</td>
-      <td>${v.humanConfirmed ? '🧑' : (v.isBot ? '🤖' : '👤')}</td>
-      <td class="nowrap" title="${esc(v.firstSeen || '')}">${v.firstSeen ? ago(v.firstSeen) : '—'}</td>
-      <td class="nowrap" title="${esc(v.lastSeen || '')}">${v.lastSeen ? ago(v.lastSeen) : '—'}</td>
-    </tr>`).join('')}
-    </tbody></table></div>`;
+  const cols = [
+    { key: 'id', label: t('tr.v.id'), get: (r) => r.id, cell: (r) => `<span class="mono">${esc(r.id)}${me && r.id.startsWith(me) ? ' 👈' : ''}</span>` },
+    { key: 'country', label: t('tr.col.geo'), align: 'nowrap', get: (r) => r.country || '', cell: (r) => `${flag(r.country)} ${esc(r.country || '—')}` },
+    { key: 'device', label: t('tr.col.device'), align: 'nowrap', get: (r) => (r.os || '') + (r.browser || ''), cell: (r) => `${esc(r.browser || '—')} · ${esc(r.os || '—')} · ${esc(r.device || '—')}` },
+    { key: 'hits', label: t('tr.v.hits'), align: 'num', get: (r) => r.hits || 0, cell: (r) => r.hits },
+    { key: 'human', label: t('tr.v.human'), align: 'nowrap', get: (r) => (r.humanConfirmed ? '0' : r.isBot ? '2' : '1'), cell: (r) => r.humanConfirmed ? '🧑' : (r.isBot ? '🤖' : '👤') },
+    { key: 'firstSeen', label: t('tr.v.first'), align: 'nowrap', get: (r) => r.firstSeen || '', cell: (r) => r.firstSeen ? `<span title="${esc(r.firstSeen)}">${ago(r.firstSeen)}</span>` : '—' },
+    { key: 'lastSeen', label: t('tr.v.last'), align: 'nowrap', get: (r) => r.lastSeen || '', cell: (r) => r.lastSeen ? `<span title="${esc(r.lastSeen)}">${ago(r.lastSeen)}</span>` : '—' },
+  ];
+  const rows = visitorsData.map((v) => ({ ...v, _cls: me && v.id.startsWith(me) ? 'is-you' : '' }));
+  renderTable(box, cols, rows, ui.visitors, renderVisitors);
 }
 
-// ── Orchestration ───────────────────────────────────────────────────────────
+// ── capped note ──────────────────────────────────────────────────────────────
+function renderCapped(d) {
+  const box = $('#tr-capped');
+  if (d.capped) {
+    box.classList.remove('hidden');
+    box.innerHTML = `⚠️ ${t('tr.capped').replace('{n}', d.limit)}`;
+  } else {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+  }
+}
+
+// ── orchestration ────────────────────────────────────────────────────────────
 let lastDash = null;
 
-async function load() {
-  const d = await fetch('/api/traffic').then((r) => r.json());
-  lastDash = d;
-  paint(d);
-  await renderVisitors();
-}
-
 function paint(d) {
+  renderCapped(d);
   renderKpis(d);
-  renderHourly(d.hourly);
+  renderSeries(d.series);
   renderBars('tr-countries', d.topCountries, { color: C.human, label: (k) => `${flag(k)} ${esc(k)}` });
   renderBars('tr-paths', d.topPaths, { color: C.s3 });
-  renderBars('tr-referrers', d.topReferrers.length ? d.topReferrers : [], { color: C.s4 });
+  renderBars('tr-referrers', d.topReferrers, { color: C.s4 });
   renderBars('tr-browsers', d.browsers, { color: C.s5 });
   renderBars('tr-os', d.os, { color: C.human });
   renderBars('tr-devices', d.devices, { color: C.s3 });
-  renderFeed(d.recent);
+  renderFeedControls();
+  renderFeed();
+}
+
+function query() {
+  const p = new URLSearchParams({ range: ui.range, limit: String(ui.limit) });
+  if (ui.range === 'custom') {
+    if (ui.from) p.set('from', new Date(ui.from).toISOString());
+    if (ui.to) p.set('to', new Date(ui.to).toISOString());
+  }
+  return p.toString();
+}
+
+async function load() {
+  const d = await fetch('/api/traffic?' + query()).then((r) => r.json());
+  lastDash = d;
+  paint(d);
+  await loadVisitors();
 }
 
 let wired = false;
 export function initTraffic() {
   if (!wired) {
     wired = true;
-    $('#tr-refresh').addEventListener('click', load);
-    $('#tr-sim').addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      const original = btn.textContent;
-      btn.disabled = true; btn.textContent = t('tr.simulating');
-      await fetch('/api/traffic/simulate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ count: 60 }) });
-      await load();
-      btn.disabled = false; btn.textContent = original;
-    });
-    // Re-paint labels on language change (data is already in memory).
-    window.addEventListener('vt-lang', () => { if (lastDash) { paint(lastDash); renderVisitors(); } });
-    // Mark "you are this visitor" once the beacon confirms.
-    window.addEventListener('vt-tracked', () => { if (lastDash) renderVisitors(); });
+    renderControls();
+    window.addEventListener('vt-lang', () => { renderControls(); if (lastDash) { paint(lastDash); renderVisitors(); } });
+    window.addEventListener('vt-tracked', () => { paintYou(); renderVisitors(); });
   }
   load();
 }

@@ -216,16 +216,13 @@ flowchart TD
       revealing anyone's address. <code>Do-Not-Track</code> is honoured.
     </div>
 
-    <div class="traffic-toolbar">
-      <button id="tr-refresh" class="btn">↻ Refresh</button>
-      <button id="tr-sim" class="btn primary">✨ Simulate traffic</button>
-      <span id="tr-you" class="tr-you"></span>
-    </div>
+    <div id="tr-controls" class="tr-controls"></div>
+    <div id="tr-capped" class="tr-capped hidden"></div>
 
     <div id="tr-kpis" class="grid kpi-grid">…</div>
 
-    <h3 data-i18n="traffic.h.hourly">Accesses over the last 24h (humans vs bots)</h3>
-    <div class="card"><div id="tr-hourly">…</div></div>
+    <h3 data-i18n="traffic.h.series">Accesses over time (humans vs bots)</h3>
+    <div class="card"><div id="tr-series">…</div></div>
 
     <div class="tr-cols">
       <div class="card"><h3 data-i18n="traffic.h.countries">🌍 Top countries</h3><div id="tr-countries">…</div></div>
@@ -239,6 +236,7 @@ flowchart TD
     </div>
 
     <h3 data-i18n="traffic.h.feed">🛰️ Live access feed (redacted)</h3>
+    <div id="tr-feed-controls" class="tr-feed-controls"></div>
     <div class="card"><div id="tr-feed">…</div></div>
 
     <h3 data-i18n="traffic.h.visitors">🧑‍🤝‍🧑 Visitor explorer</h3>

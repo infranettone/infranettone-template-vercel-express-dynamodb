@@ -3,10 +3,13 @@ const { getDashboard, getVisitorsView, track, simulate } = require('../services/
 
 const router = express.Router();
 
-// Aggregated dashboard (KPIs, series, tops, redacted recent feed).
+// Aggregated dashboard for a time range. Query params:
+//   range = 1h | 24h | 7d | 30d | 90d | 1y | custom
+//   from, to = ISO datetimes (used when range=custom)
+//   limit = max events loaded (50–2000), tied to the range
 router.get('/', async (req, res, next) => {
   try {
-    res.json(await getDashboard());
+    res.json(await getDashboard(req.query));
   } catch (err) { next(err); }
 });
 

@@ -91,14 +91,41 @@ test('simulate populates the dashboard and the aggregates add up', async () => {
   await fetch(`${base}/api/traffic/simulate`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ count: 50 }),
   });
-  const d = await fetch(`${base}/api/traffic`).then((r) => r.json());
+  const d = await fetch(`${base}/api/traffic?range=24h&limit=2000`).then((r) => r.json());
   assert.ok(d.totals.hits >= 50);
   assert.strictEqual(d.totals.humans + d.totals.bots, d.totals.hits);
-  assert.strictEqual(d.hourly.length, 24);
+  assert.ok(d.series && Array.isArray(d.series.buckets) && d.series.buckets.length > 0);
   assert.ok(Array.isArray(d.topCountries) && d.topCountries.length > 0);
-  assert.ok(d.recent.length > 0);
+  assert.ok(d.events.length > 0);
   // No feed event exposes sensitive values in clear.
-  assert.ok(!JSON.stringify(d.recent).match(/Bearer |session=/));
+  assert.ok(!JSON.stringify(d.events).match(/Bearer |session=/));
+});
+
+test('the time range drives the series granularity', async () => {
+  const day = await fetch(`${base}/api/traffic?range=24h`).then((r) => r.json());
+  assert.strictEqual(day.series.unit, 'hour');
+  const week = await fetch(`${base}/api/traffic?range=7d`).then((r) => r.json());
+  assert.strictEqual(week.series.unit, 'day');
+  const year = await fetch(`${base}/api/traffic?range=1y`).then((r) => r.json());
+  assert.strictEqual(year.series.unit, 'month');
+});
+
+test('limit bounds the loaded events and flags capped', async () => {
+  const d = await fetch(`${base}/api/traffic?range=24h&limit=50`).then((r) => r.json());
+  assert.ok(d.events.length <= 50);
+  assert.strictEqual(d.limit, 50);
+  // With >50 simulated events in the last 24h, it must report capped.
+  if (d.events.length === 50) assert.strictEqual(d.capped, true);
+});
+
+test('a custom range only returns events inside the window', async () => {
+  const to = new Date().toISOString();
+  const from = new Date(Date.now() - 3600e3).toISOString(); // last hour
+  const d = await fetch(`${base}/api/traffic?range=custom&from=${from}&to=${to}&limit=2000`).then((r) => r.json());
+  assert.strictEqual(d.range, 'custom');
+  for (const e of d.events) {
+    assert.ok(e.ts >= from && e.ts <= to, `event ${e.ts} outside [${from}, ${to}]`);
+  }
 });
 
 test('the visitor explorer lists the beacon visitor', async () => {
