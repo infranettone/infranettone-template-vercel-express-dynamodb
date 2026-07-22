@@ -68,7 +68,8 @@ flowchart LR
 ├── .github/workflows/
 │   ├── ci.yml               # npm test en cada push/PR (sin secretos)
 │   └── deploy-infra.yml     # Despliega el stack cuando cambia infra/** o a demanda
-└── vercel.json              # Todo el tráfico → src/server.js (@vercel/node)
+├── api/index.js             # Entrada serverless en Vercel: exporta src/app.js
+└── vercel.json              # public/ estático por CDN; el resto → función /api
 ```
 
 ## Despliegue paso a paso
@@ -152,6 +153,9 @@ vercel domains add vedtemplate.infranettone.com
 - Vercel define `AWS_REGION` por su cuenta en el runtime; no te fíes de ella como señal
   de configuración (el panel de estado comprueba las credenciales, no la región).
 - Los repos generados desde un template **no heredan los secretos**: repite el paso 5.
+- No uses `builds`/`routes` (legacy) en `vercel.json` para una app Express: ese builder
+  transpila también los `.js` de `public/` a CommonJS y rompe los módulos ES del navegador
+  (`require is not defined`). Usa `rewrites` + `api/index.js` y deja `public/` como estático.
 
 ## API
 
