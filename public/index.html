@@ -3,10 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>vedtemplate — Vercel + Express + DynamoDB template</title>
+
+  <!-- ═══════════════ SEO ═══════════════ -->
+  <title>vedtemplate — Automated cloud app template (Vercel + Express + AWS DynamoDB) · Infranettone</title>
+  <meta name="description" content="Production-ready template by Infranettone to ship apps on Vercel + Express + AWS DynamoDB for near-zero cost, with a built-in web traffic monitoring, auditing and visitor-identification dashboard. AI-automated infrastructure by Raúl Adamuz." />
+  <meta name="keywords" content="Infranettone, automated infrastructure, AI infrastructure, Vercel template, Express DynamoDB, AWS serverless, web traffic monitoring, visitor analytics, bot detection, fingerprinting, CI/CD, CloudFormation, Raúl Adamuz" />
+  <meta name="author" content="Raúl Adamuz — Infranettone" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://vedtemplate.infranettone.com/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Infranettone" />
+  <meta property="og:title" content="vedtemplate — Automated cloud app template by Infranettone" />
+  <meta property="og:description" content="Ship apps on Vercel + Express + AWS DynamoDB for near-zero cost, with a built-in traffic monitoring & visitor-identification dashboard." />
+  <meta property="og:url" content="https://vedtemplate.infranettone.com/" />
+  <meta property="og:image" content="https://vedtemplate.infranettone.com/og.svg" />
+  <meta property="og:locale" content="en" />
+  <meta property="og:locale:alternate" content="es" />
+  <meta property="og:locale:alternate" content="ca" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="vedtemplate — Automated cloud app template by Infranettone" />
+  <meta name="twitter:description" content="Vercel + Express + AWS DynamoDB, near-zero cost, with built-in traffic monitoring & visitor identification." />
+  <meta name="twitter:image" content="https://vedtemplate.infranettone.com/og.svg" />
+
+  <!-- Datos estructurados (Schema.org): quién lo hizo y qué es -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://infranettone.com/#org",
+        "name": "Infranettone",
+        "description": "World reference in AI-automated infrastructure.",
+        "url": "https://infranettone.com",
+        "founder": { "@id": "https://github.com/radamuz#person" },
+        "sameAs": ["https://github.com/infranettone"]
+      },
+      {
+        "@type": "Person",
+        "@id": "https://github.com/radamuz#person",
+        "name": "Raúl Adamuz Cano",
+        "url": "https://github.com/radamuz",
+        "jobTitle": "Founder",
+        "worksFor": { "@id": "https://infranettone.com/#org" },
+        "sameAs": ["https://github.com/radamuz"]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "vedtemplate",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "url": "https://vedtemplate.infranettone.com/",
+        "author": { "@id": "https://github.com/radamuz#person" },
+        "publisher": { "@id": "https://infranettone.com/#org" },
+        "description": "Production-ready template to deploy apps on Vercel + Express + AWS DynamoDB with a built-in web traffic monitoring, auditing and visitor-identification dashboard.",
+        "softwareHelp": "https://github.com/infranettone/infranettone-template-vercel-express-dynamodb"
+      }
+    ]
+  }
+  </script>
+
   <link rel="stylesheet" href="/styles/base.css" />
   <script type="module" src="/js/main.js"></script>
+  <script src="/js/track.js" defer></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     // startOnLoad: false — diagrams inside hidden tabs (display:none) would
@@ -32,9 +95,11 @@
 
   <nav id="tabs">
     <button data-tab="arquitectura" class="active" data-i18n="tab.arch">🏗️ Architecture</button>
+    <button data-tab="trafico" data-i18n="tab.traffic">📡 Traffic</button>
     <button data-tab="conexiones" data-i18n="tab.conn">🔌 Connections (live)</button>
     <button data-tab="demo" data-i18n="tab.demo">🧪 CRUD demo</button>
     <button data-tab="despliegue" data-i18n="tab.deploy">🚀 Deployment</button>
+    <button data-tab="seo" data-i18n="tab.seo">🔎 SEO</button>
     <button data-tab="api" data-i18n="tab.api">📚 API &amp; Tests</button>
   </nav>
 
@@ -132,6 +197,68 @@ flowchart TD
       <li><strong>Idempotent infra</strong>: CloudFormation with <code>DeletionPolicy: Retain</code> — deleting the stack never deletes data.</li>
       <li><strong>Zero cost at rest</strong>: Vercel Hobby + DynamoDB on-demand + free GitHub Actions on public repos.</li>
     </ul>
+  </section>
+
+  <!-- ═══════════════ TRAFFIC ═══════════════ -->
+  <section id="tab-trafico" class="tab">
+    <h2 data-i18n="traffic.h">📡 Web traffic intelligence</h2>
+    <p data-i18n="traffic.p">
+      A monitoring, auditing and visitor-identification tool built into the app itself. It
+      answers the questions an owner actually cares about: <strong>how many people visit, who they
+      are, where from, whether they are real humans or bots, and whether traffic is trending</strong>.
+      Everything below is live from <code>GET /api/traffic</code> — try the buttons.
+    </p>
+    <div class="privacy-note" data-i18n="traffic.privacy">
+      🔒 <strong>Privacy by design.</strong> This page is public, so sensitive request/response
+      values (Authorization headers, cookies, query strings) are <em>captured for auditing but
+      never stored or shown in clear</em> — you only see that they were captured. IP addresses are
+      masked (last octet dropped) and additionally salted-hashed to count unique visitors without
+      revealing anyone's address. <code>Do-Not-Track</code> is honoured.
+    </div>
+
+    <div class="traffic-toolbar">
+      <button id="tr-refresh" class="btn">↻ Refresh</button>
+      <button id="tr-sim" class="btn primary">✨ Simulate traffic</button>
+      <span id="tr-you" class="tr-you"></span>
+    </div>
+
+    <div id="tr-kpis" class="grid kpi-grid">…</div>
+
+    <h3 data-i18n="traffic.h.hourly">Accesses over the last 24h (humans vs bots)</h3>
+    <div class="card"><div id="tr-hourly">…</div></div>
+
+    <div class="tr-cols">
+      <div class="card"><h3 data-i18n="traffic.h.countries">🌍 Top countries</h3><div id="tr-countries">…</div></div>
+      <div class="card"><h3 data-i18n="traffic.h.paths">📄 Top pages</h3><div id="tr-paths">…</div></div>
+      <div class="card"><h3 data-i18n="traffic.h.referrers">🔗 Referrers</h3><div id="tr-referrers">…</div></div>
+    </div>
+    <div class="tr-cols">
+      <div class="card"><h3 data-i18n="traffic.h.browsers">🌐 Browsers</h3><div id="tr-browsers">…</div></div>
+      <div class="card"><h3 data-i18n="traffic.h.os">💻 OS</h3><div id="tr-os">…</div></div>
+      <div class="card"><h3 data-i18n="traffic.h.devices">📱 Devices</h3><div id="tr-devices">…</div></div>
+    </div>
+
+    <h3 data-i18n="traffic.h.feed">🛰️ Live access feed (redacted)</h3>
+    <div class="card"><div id="tr-feed">…</div></div>
+
+    <h3 data-i18n="traffic.h.visitors">🧑‍🤝‍🧑 Visitor explorer</h3>
+    <p class="hint" data-i18n="traffic.p.visitors">Each visitor is a browser fingerprint (canvas + non-PII signals, hashed). It lets us count unique people and spot returning ones without a login.</p>
+    <div class="card"><div id="tr-visitors">…</div></div>
+
+    <h3 data-i18n="traffic.h.how">How it works</h3>
+    <div class="card">
+      <pre class="mermaid">
+flowchart LR
+  V[Visitor browser] -- "page load" --> BE[track.js beacon<br/>fingerprint + signals]
+  BE -- "POST /api/traffic/track" --> FN[Express function]
+  A[Any API call] --> MW[access-log middleware]
+  MW --> FN
+  FN -- "mask IP · hash · redact sensitive<br/>parse UA · detect bot · geo (edge)" --> EV[(DynamoDB<br/>EVENT · TTL 7d)]
+  FN --> VP[(DynamoDB<br/>VISITOR profile)]
+  EV -- "GET /api/traffic<br/>aggregate on read" --> DASH[This dashboard]
+  VP --> DASH
+      </pre>
+    </div>
   </section>
 
   <!-- ═══════════════ CONNECTIONS ═══════════════ -->
@@ -272,6 +399,50 @@ vercel redeploy &lt;url&gt;</pre>
     </div>
   </section>
 
+  <!-- ═══════════════ SEO ═══════════════ -->
+  <section id="tab-seo" class="tab">
+    <h2 data-i18n="seo.h">🔎 SEO — how this site gets found on Google</h2>
+    <p data-i18n="seo.intro">
+      SEO (Search Engine Optimization) is the craft of helping search engines <em>understand</em> and
+      <em>trust</em> your page so it appears when people search for what you offer. You don't pay
+      Google to appear here — you make the page easy to read for both humans and crawlers. Here is
+      the plain-English version, and exactly what this template already does for you.
+    </p>
+
+    <h3 data-i18n="seo.h.how">How a search engine works, in 3 steps</h3>
+    <div class="card">
+      <pre class="mermaid">
+flowchart LR
+  C[1 · Crawl<br/>Googlebot fetches your pages<br/>following links + sitemap.xml] --> I[2 · Index<br/>reads title, description,<br/>headings, structured data]
+  I --> R[3 · Rank<br/>shows your page for queries<br/>by relevance + trust]
+  R --> U[Someone searches<br/>and finds you]
+      </pre>
+    </div>
+
+    <h3 data-i18n="seo.h.does">What this template already does</h3>
+    <ul class="decisions" data-i18n="seo.does">
+      <li><strong>Descriptive <code>&lt;title&gt;</code> and meta description</strong> — the blue headline and grey text you see in Google results. Written around what the site is about.</li>
+      <li><strong>Keywords in real content</strong> — search engines rank the words that actually appear on the page. Everything this app talks about (Vercel, DynamoDB, monitoring, automated infrastructure…) is genuine on-page text, not hidden tricks.</li>
+      <li><strong>Structured data (Schema.org JSON-LD)</strong> — a machine-readable block in the page that tells Google "this is a <em>SoftwareApplication</em>, made by the <em>Person</em> Raúl Adamuz, published by the <em>Organization</em> Infranettone." This is how you get rich results and knowledge-panel links.</li>
+      <li><strong><code>robots.txt</code> + <code>sitemap.xml</code></strong> — served at the site root, they invite crawlers in and list the pages to index.</li>
+      <li><strong>Canonical URL + Open Graph tags</strong> — one official address for the page, plus nice preview cards when shared on social media / WhatsApp.</li>
+      <li><strong>Fast, mobile-friendly, HTTPS</strong> — Vercel gives you a global CDN and automatic SSL; speed and mobile are ranking factors.</li>
+    </ul>
+
+    <h3 data-i18n="seo.h.you">What only you can do (off-page)</h3>
+    <ul class="decisions" data-i18n="seo.you">
+      <li><strong>Get links</strong> — when other sites link to yours, Google trusts you more. Share the repo, write about it, link from your other projects.</li>
+      <li><strong>Be patient</strong> — indexing takes days to weeks. You can speed the first step in <a href="https://search.google.com/search-console" target="_blank">Google Search Console</a>: add the domain and hit "Request indexing".</li>
+      <li><strong>Keep the content real and specific</strong> — pages that genuinely answer a query rank; keyword-stuffing gets penalised.</li>
+    </ul>
+
+    <div class="privacy-note" data-i18n="seo.note">
+      💡 <strong>In short:</strong> this page is already built to be found when someone searches for
+      automated infrastructure, Vercel/DynamoDB templates, or web-traffic tooling — and it credits
+      <strong>Infranettone</strong> and its founder in machine-readable form. The rest is links and time.
+    </div>
+  </section>
+
   <!-- ═══════════════ API & TESTS ═══════════════ -->
   <section id="tab-api" class="tab">
     <h2 data-i18n="api.h.endpoints">Endpoints</h2>
@@ -314,7 +485,17 @@ flowchart LR
   </section>
 
   <footer>
-    <p data-i18n="footer.p">vedtemplate · Express · DynamoDB · Vercel · GitHub Actions</p>
+    <p class="footer-stack" data-i18n="footer.p">vedtemplate · Express · DynamoDB · Vercel · GitHub Actions</p>
+    <p class="footer-brand">
+      <strong>Infranettone</strong> — <span data-i18n="footer.tagline">world reference in AI-automated infrastructure</span>.
+    </p>
+    <p class="footer-author">
+      <span data-i18n="footer.by">Built by</span>
+      <a href="https://github.com/radamuz" target="_blank" rel="author">Raúl Adamuz Cano</a>,
+      <span data-i18n="footer.founder">founder of Infranettone</span> ·
+      <a href="https://github.com/infranettone/infranettone-template-vercel-express-dynamodb" target="_blank" rel="noopener">📦 <span data-i18n="footer.repo">source repository</span></a> ·
+      <a href="https://github.com/radamuz" target="_blank" rel="noopener">👤 GitHub</a>
+    </p>
   </footer>
 </body>
 </html>

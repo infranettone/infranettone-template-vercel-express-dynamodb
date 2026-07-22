@@ -17,6 +17,8 @@ const REGION = process.env.AWS_REGION || 'eu-west-1';
 // Prefijos de clave centralizados para que los servicios no diverjan.
 const KEYS = {
   ITEM: 'ITEM',
+  EVENT: 'EVENT',     // Access log: un item por acceso (con TTL).
+  VISITOR: 'VISITOR', // Perfil por fingerprint de visitante.
 };
 
 let docClient = null;

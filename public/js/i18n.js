@@ -53,6 +53,44 @@ export const translations = {
     'tab.demo': '🧪 Demo CRUD',
     'tab.deploy': '🚀 Despliegue',
     'tab.api': '📚 API &amp; Tests',
+    'tab.traffic': '📡 Tráfico',
+    'tab.seo': '🔎 SEO',
+
+    'traffic.h': '📡 Inteligencia de tráfico web',
+    'traffic.p': 'Una herramienta de monitorización, auditoría e identificación de visitantes integrada en la propia app. Responde a lo que de verdad le importa a quien tiene la web: <strong>cuánta gente visita, quién es, desde dónde, si son humanos reales o bots, y si el tráfico está creciendo</strong>. Todo lo de abajo es en vivo desde <code>GET /api/traffic</code> — prueba los botones.',
+    'traffic.privacy': '🔒 <strong>Privacidad por diseño.</strong> Esta página es pública, así que los valores sensibles de request/response (cabeceras Authorization, cookies, query strings) se <em>captan para auditoría pero nunca se guardan ni se muestran en claro</em> — solo ves que se captaron. Las IP se enmascaran (se elimina el último octeto) y además se hashean con sal para contar visitantes únicos sin revelar la dirección de nadie. Se respeta <code>Do-Not-Track</code>.',
+    'traffic.h.hourly': 'Accesos en las últimas 24h (humanos vs bots)',
+    'traffic.h.countries': '🌍 Países principales',
+    'traffic.h.paths': '📄 Páginas principales',
+    'traffic.h.referrers': '🔗 Orígenes (referrers)',
+    'traffic.h.browsers': '🌐 Navegadores',
+    'traffic.h.os': '💻 Sistemas',
+    'traffic.h.devices': '📱 Dispositivos',
+    'traffic.h.feed': '🛰️ Feed de accesos en vivo (redactado)',
+    'traffic.h.visitors': '🧑‍🤝‍🧑 Explorador de visitantes',
+    'traffic.p.visitors': 'Cada visitante es un fingerprint del navegador (canvas + señales no personales, hasheadas). Permite contar personas únicas y detectar recurrentes sin necesidad de login.',
+    'traffic.h.how': 'Cómo funciona',
+
+    'seo.h': '🔎 SEO — cómo consigue aparecer esta web en Google',
+    'seo.intro': 'El SEO (Search Engine Optimization) es el arte de ayudar a los buscadores a <em>entender</em> y <em>confiar</em> en tu página para que aparezca cuando alguien busca lo que ofreces. No pagas a Google por salir aquí — haces que la página sea fácil de leer tanto para humanos como para los rastreadores. Aquí lo tienes en cristiano, y exactamente lo que esta plantilla ya hace por ti.',
+    'seo.h.how': 'Cómo funciona un buscador, en 3 pasos',
+    'seo.h.does': 'Lo que esta plantilla ya hace',
+    'seo.does': `<li><strong><code>&lt;title&gt;</code> descriptivo y meta descripción</strong> — el titular azul y el texto gris que ves en los resultados de Google. Escritos en torno a de qué va la web.</li>
+      <li><strong>Palabras clave en contenido real</strong> — los buscadores posicionan las palabras que realmente aparecen en la página. Todo lo que menciona esta app (Vercel, DynamoDB, monitorización, infraestructura automatizada…) es texto genuino, no trucos ocultos.</li>
+      <li><strong>Datos estructurados (Schema.org JSON-LD)</strong> — un bloque legible por máquina que le dice a Google "esto es una <em>SoftwareApplication</em>, hecha por la <em>persona</em> Raúl Adamuz, publicada por la <em>organización</em> Infranettone". Así se consiguen resultados enriquecidos y enlaces en el panel de conocimiento.</li>
+      <li><strong><code>robots.txt</code> + <code>sitemap.xml</code></strong> — servidos en la raíz del sitio, invitan a los rastreadores y listan las páginas a indexar.</li>
+      <li><strong>URL canónica + etiquetas Open Graph</strong> — una dirección oficial para la página, más tarjetas de vista previa bonitas al compartir en redes / WhatsApp.</li>
+      <li><strong>Rápida, apta para móvil, HTTPS</strong> — Vercel te da CDN global y SSL automático; velocidad y móvil son factores de posicionamiento.</li>`,
+    'seo.h.you': 'Lo que solo puedes hacer tú (off-page)',
+    'seo.you': `<li><strong>Consigue enlaces</strong> — cuando otras webs enlazan la tuya, Google confía más. Comparte el repo, escribe sobre él, enlázalo desde tus otros proyectos.</li>
+      <li><strong>Ten paciencia</strong> — la indexación tarda de días a semanas. Puedes acelerar el primer paso en <a href="https://search.google.com/search-console" target="_blank">Google Search Console</a>: añade el dominio y pulsa "Solicitar indexación".</li>
+      <li><strong>Mantén el contenido real y específico</strong> — las páginas que responden de verdad a una búsqueda posicionan; el amontonar palabras clave se penaliza.</li>`,
+    'seo.note': '💡 <strong>En resumen:</strong> esta página ya está construida para que la encuentren cuando alguien busca infraestructura automatizada, plantillas de Vercel/DynamoDB o herramientas de tráfico web — y acredita a <strong>Infranettone</strong> y a su fundador de forma legible por máquina. El resto son enlaces y tiempo.',
+
+    'footer.tagline': 'referente mundial en infraestructura automatizada con IA',
+    'footer.by': 'Hecho por',
+    'footer.founder': 'fundador de Infranettone',
+    'footer.repo': 'repositorio fuente',
 
     'arch.h.overview': 'Visión general',
     'arch.p.overview': 'Un único repo contiene <strong>frontend estático</strong>, <strong>API Express</strong> e <strong>infraestructura como código</strong>. Vercel sirve ambos (frontend + API) como una función serverless gratuita; los datos viven en una tabla DynamoDB de AWS en modo <em>pay-per-request</em> (coste 0 sin tráfico). GitHub Actions despliega la infraestructura.',
@@ -178,6 +216,41 @@ npm run seed</pre>
     'js.items.delete': '🗑 borrar',
     'js.items.loaderr': 'Error cargando registros:',
     'js.error': 'Error',
+
+    'tr.kpi.hits': 'Accesos totales (7d)',
+    'tr.kpi.unique': 'Visitantes únicos',
+    'tr.kpi.split': 'Humanos vs bots',
+    'tr.kpi.confirmed': 'Humanos confirmados por JS',
+    'tr.kpi.trend': 'Tendencia (últimas 24h)',
+    'tr.kpi.trendh': 'Tendencia (última hora)',
+    'tr.refresh': '↻ Refrescar',
+    'tr.simulate': '✨ Simular tráfico',
+    'tr.simulating': 'Simulando…',
+    'tr.legend.human': 'Humanos',
+    'tr.legend.bot': 'Bots',
+    'tr.you': 'Eres el visitante',
+    'tr.human': 'Humano',
+    'tr.bot': 'Bot',
+    'tr.unverified': 'Sin verificar',
+    'tr.direct': '(directo)',
+    'tr.novisitors': 'Aún no hay visitantes. Pulsa "Simular tráfico" o navega por la web.',
+    'tr.nodata': 'Todavía no hay datos — pulsa "Simular tráfico".',
+    'tr.sensitive': 'sensibles captados',
+    'tr.col.time': 'Hora',
+    'tr.col.path': 'Ruta',
+    'tr.col.geo': 'Ubicación',
+    'tr.col.device': 'Dispositivo',
+    'tr.col.class': 'Clase',
+    'tr.col.ref': 'Origen',
+    'tr.col.vid': 'Visitante',
+    'tr.v.id': 'Fingerprint',
+    'tr.v.hits': 'Accesos',
+    'tr.v.first': 'Primera vez',
+    'tr.v.last': 'Última vez',
+    'tr.v.human': 'Confirmado',
+    'tr.per24': 'vs 24h anteriores',
+    'tr.perh': 'vs hora anterior',
+    'tr.of': 'de',
   },
 
   ca: {
@@ -187,6 +260,44 @@ npm run seed</pre>
     'tab.demo': '🧪 Demo CRUD',
     'tab.deploy': '🚀 Desplegament',
     'tab.api': '📚 API &amp; Tests',
+    'tab.traffic': '📡 Trànsit',
+    'tab.seo': '🔎 SEO',
+
+    'traffic.h': '📡 Intel·ligència de trànsit web',
+    'traffic.p': 'Una eina de monitorització, auditoria i identificació de visitants integrada dins sa mateixa app. Respon a lo que de veres importa a qui té sa web: <strong>quanta gent visita, qui és, des d\'on, si són humans reals o bots, i si es trànsit està creixent</strong>. Tot lo d\'abaix és en viu des de <code>GET /api/traffic</code> — prova es botons.',
+    'traffic.privacy': '🔒 <strong>Privacitat per disseny.</strong> Aquesta pàgina és pública, així que es valors sensibles de request/response (capçaleres Authorization, cookies, query strings) es <em>capten per auditoria però mai es guarden ni es mostren en clar</em> — només veus que es van captar. Ses IP s\'emmascaren (es lleva es darrer octet) i a més es fan hash amb sal per comptar visitants únics sense revelar s\'adreça de ningú. Es respecta <code>Do-Not-Track</code>.',
+    'traffic.h.hourly': 'Accessos a ses darreres 24h (humans vs bots)',
+    'traffic.h.countries': '🌍 Països principals',
+    'traffic.h.paths': '📄 Pàgines principals',
+    'traffic.h.referrers': '🔗 Orígens (referrers)',
+    'traffic.h.browsers': '🌐 Navegadors',
+    'traffic.h.os': '💻 Sistemes',
+    'traffic.h.devices': '📱 Dispositius',
+    'traffic.h.feed': '🛰️ Feed d\'accessos en viu (redactat)',
+    'traffic.h.visitors': '🧑‍🤝‍🧑 Explorador de visitants',
+    'traffic.p.visitors': 'Cada visitant és un fingerprint des navegador (canvas + senyals no personals, amb hash). Permet comptar persones úniques i detectar recurrents sense necessitat de login.',
+    'traffic.h.how': 'Com funciona',
+
+    'seo.h': '🔎 SEO — com aconsegueix aparèixer aquesta web a Google',
+    'seo.intro': 'Es SEO (Search Engine Optimization) és s\'art d\'ajudar es cercadors a <em>entendre</em> i <em>confiar</em> en sa teva pàgina perquè aparegui quan qualcú cerca lo que ofereixes. No pagues Google per sortir aquí — fas que sa pàgina sigui fàcil de llegir tant per humans com per ses aranyes. Aquí ho tens clar, i exactament lo que aquesta plantilla ja fa per tu.',
+    'seo.h.how': 'Com funciona un cercador, en 3 passes',
+    'seo.h.does': 'Lo que aquesta plantilla ja fa',
+    'seo.does': `<li><strong><code>&lt;title&gt;</code> descriptiu i meta descripció</strong> — es titular blau i es text gris que veus as resultats de Google. Escrits al voltant de què va sa web.</li>
+      <li><strong>Paraules clau en contingut real</strong> — es cercadors posicionen ses paraules que realment surten a sa pàgina. Tot lo que menciona aquesta app (Vercel, DynamoDB, monitorització, infraestructura automatitzada…) és text genuí, no trucs amagats.</li>
+      <li><strong>Dades estructurades (Schema.org JSON-LD)</strong> — un bloc llegible per màquina que diu a Google "això és una <em>SoftwareApplication</em>, feta per sa <em>persona</em> Raúl Adamuz, publicada per s\'<em>organització</em> Infranettone". Així s\'aconsegueixen resultats enriquits i enllaços as panell de coneixement.</li>
+      <li><strong><code>robots.txt</code> + <code>sitemap.xml</code></strong> — servits a s\'arrel des lloc, conviden ses aranyes i llisten ses pàgines a indexar.</li>
+      <li><strong>URL canònica + etiquetes Open Graph</strong> — una adreça oficial per sa pàgina, més targetes de vista prèvia guapes en compartir a xarxes / WhatsApp.</li>
+      <li><strong>Ràpida, apta per mòbil, HTTPS</strong> — Vercel et dóna CDN global i SSL automàtic; velocitat i mòbil són factors de posicionament.</li>`,
+    'seo.h.you': 'Lo que només pots fer tu (off-page)',
+    'seo.you': `<li><strong>Aconsegueix enllaços</strong> — quan altres webs enllacen sa teva, Google confia més. Comparteix es repo, escriu-ne, enllaça\'l des des teus altres projectes.</li>
+      <li><strong>Té paciència</strong> — s\'indexació tarda de dies a setmanes. Pots accelerar sa primera passa a <a href="https://search.google.com/search-console" target="_blank">Google Search Console</a>: afegeix es domini i prem "Sol·licitar indexació".</li>
+      <li><strong>Mantén es contingut real i específic</strong> — ses pàgines que responen de veres a una cerca posicionen; amuntegar paraules clau es penalitza.</li>`,
+    'seo.note': '💡 <strong>En resum:</strong> aquesta pàgina ja està construïda perquè la trobin quan qualcú cerca infraestructura automatitzada, plantilles de Vercel/DynamoDB o eines de trànsit web — i acredita <strong>Infranettone</strong> i es seu fundador de forma llegible per màquina. Sa resta són enllaços i temps.',
+
+    'footer.tagline': 'referent mundial en infraestructura automatitzada amb IA',
+    'footer.by': 'Fet per',
+    'footer.founder': 'fundador d\'Infranettone',
+    'footer.repo': 'repositori font',
 
     'arch.h.overview': 'Visió general',
     'arch.p.overview': 'Un únic repo conté es <strong>frontend estàtic</strong>, s\'<strong>API Express</strong> i sa <strong>infraestructura com a codi</strong>. Vercel serveix tots dos (frontend + API) com una funció serverless gratuïta; ses dades viuen a una taula DynamoDB d\'AWS en mode <em>pay-per-request</em> (cost 0 sense trànsit). GitHub Actions desplega sa infraestructura.',
@@ -311,8 +422,49 @@ npm run seed</pre>
     'js.items.delete': '🗑 esborrar',
     'js.items.loaderr': 'Error carregant registres:',
     'js.error': 'Error',
+
+    'tr.kpi.hits': 'Accessos totals (7d)',
+    'tr.kpi.unique': 'Visitants únics',
+    'tr.kpi.split': 'Humans vs bots',
+    'tr.kpi.confirmed': 'Humans confirmats per JS',
+    'tr.kpi.trend': 'Tendència (darreres 24h)',
+    'tr.kpi.trendh': 'Tendència (darrera hora)',
+    'tr.refresh': '↻ Refrescar',
+    'tr.simulate': '✨ Simular trànsit',
+    'tr.simulating': 'Simulant…',
+    'tr.legend.human': 'Humans',
+    'tr.legend.bot': 'Bots',
+    'tr.you': 'Ets es visitant',
+    'tr.human': 'Humà',
+    'tr.bot': 'Bot',
+    'tr.unverified': 'Sense verificar',
+    'tr.direct': '(directe)',
+    'tr.novisitors': 'Encara no hi ha visitants. Prem "Simular trànsit" o navega per sa web.',
+    'tr.nodata': 'Encara no hi ha dades — prem "Simular trànsit".',
+    'tr.sensitive': 'sensibles captats',
+    'tr.col.time': 'Hora',
+    'tr.col.path': 'Ruta',
+    'tr.col.geo': 'Ubicació',
+    'tr.col.device': 'Dispositiu',
+    'tr.col.class': 'Classe',
+    'tr.col.ref': 'Origen',
+    'tr.col.vid': 'Visitant',
+    'tr.v.id': 'Fingerprint',
+    'tr.v.hits': 'Accessos',
+    'tr.v.first': 'Primera vegada',
+    'tr.v.last': 'Darrera vegada',
+    'tr.v.human': 'Confirmat',
+    'tr.per24': 'vs 24h anteriors',
+    'tr.perh': 'vs hora anterior',
+    'tr.of': 'de',
   },
 };
+
+// Helper compartido por main.js y traffic.js: devuelve la traducción de `key`
+// para `lang`, cayendo a las cadenas por defecto en inglés.
+export function tr(lang, key) {
+  return (translations[lang] && translations[lang][key]) || jsDefaults[key] || key;
+}
 
 // Cadenas JS por defecto (inglés).
 export const jsDefaults = {
@@ -330,4 +482,40 @@ export const jsDefaults = {
   'js.items.delete': '🗑 delete',
   'js.items.loaderr': 'Error loading records:',
   'js.error': 'Error',
+
+  // ── Traffic dashboard ──
+  'tr.kpi.hits': 'Total accesses (7d)',
+  'tr.kpi.unique': 'Unique visitors',
+  'tr.kpi.split': 'Humans vs bots',
+  'tr.kpi.confirmed': 'JS-confirmed humans',
+  'tr.kpi.trend': 'Trend (last 24h)',
+  'tr.kpi.trendh': 'Trend (last hour)',
+  'tr.refresh': '↻ Refresh',
+  'tr.simulate': '✨ Simulate traffic',
+  'tr.simulating': 'Simulating…',
+  'tr.legend.human': 'Humans',
+  'tr.legend.bot': 'Bots',
+  'tr.you': 'You are visitor',
+  'tr.human': 'Human',
+  'tr.bot': 'Bot',
+  'tr.unverified': 'Unverified',
+  'tr.direct': '(direct)',
+  'tr.novisitors': 'No visitors yet. Hit "Simulate traffic" or just browse the site.',
+  'tr.nodata': 'No data yet — click "Simulate traffic".',
+  'tr.sensitive': 'sensitive captured',
+  'tr.col.time': 'Time',
+  'tr.col.path': 'Path',
+  'tr.col.geo': 'Location',
+  'tr.col.device': 'Device',
+  'tr.col.class': 'Class',
+  'tr.col.ref': 'Referrer',
+  'tr.col.vid': 'Visitor',
+  'tr.v.id': 'Fingerprint',
+  'tr.v.hits': 'Hits',
+  'tr.v.first': 'First seen',
+  'tr.v.last': 'Last seen',
+  'tr.v.human': 'Confirmed',
+  'tr.per24': 'vs previous 24h',
+  'tr.perh': 'vs previous hour',
+  'tr.of': 'of',
 };

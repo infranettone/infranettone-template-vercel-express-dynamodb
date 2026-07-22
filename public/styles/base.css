@@ -129,4 +129,66 @@ ol.steps > li { margin-bottom: 1.2rem; }
 ul.decisions li { margin-bottom: .5rem; }
 .hint { color: var(--muted); font-size: .85rem; }
 
-footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2rem 0; border-top: 1px solid var(--border); }
+footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2rem 1rem; border-top: 1px solid var(--border); }
+.footer-brand { color: var(--text); font-size: .95rem; margin: .6rem 0 .2rem; }
+.footer-author { margin: .2rem 0; }
+.footer-author a { color: var(--accent); text-decoration: none; }
+.footer-author a:hover { text-decoration: underline; }
+
+/* ═══════════════ Dashboard de tráfico ═══════════════ */
+.traffic-toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0; }
+.tr-you { color: var(--ok); font-size: .85rem; font-family: ui-monospace, monospace; }
+.privacy-note {
+  background: rgba(91,140,255,.08); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 8px; padding: .8rem 1rem; font-size: .88rem; margin: 1rem 0; line-height: 1.5;
+}
+.kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.kpi-sub { color: var(--muted); font-size: .75rem; margin-top: .3rem; }
+.trend { font-weight: 700; }
+.trend.up { color: var(--ok); }
+.trend.down { color: var(--err); }
+.trend.flat { color: var(--muted); }
+
+.tr-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
+.tr-cols .card h3 { margin-top: 0; }
+
+/* Gráfico SVG */
+.viz { width: 100%; height: auto; }
+.viz-scroll { overflow-x: auto; }
+.viz .grid { stroke: var(--border); stroke-width: 1; }
+.viz .axis { fill: var(--muted); font-size: 10px; font-family: ui-monospace, monospace; }
+.viz .hbar:hover { fill: rgba(255,255,255,.04); }
+.legend { display: flex; gap: 1rem; font-size: .82rem; color: var(--muted); margin-bottom: .4rem; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .35rem; vertical-align: middle; }
+
+/* Barras horizontales */
+.hbars { display: flex; flex-direction: column; gap: .35rem; }
+.hbar-row { display: grid; grid-template-columns: 90px 1fr 34px; gap: .5rem; align-items: center; font-size: .82rem; }
+.hbar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { background: var(--panel2); border-radius: 4px; height: 14px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 4px; min-width: 2px; transition: width .3s; }
+.hbar-val { text-align: right; color: var(--muted); font-family: ui-monospace, monospace; }
+
+/* Tooltip */
+.viz-tip {
+  position: fixed; z-index: 100; background: #05070d; color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: .35rem .6rem;
+  font-size: .8rem; pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+}
+.viz-tip.hidden { display: none; }
+
+/* Feed / tablas de tráfico */
+table.feed { width: 100%; border-collapse: collapse; font-size: .8rem; }
+table.feed th, table.feed td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+table.feed th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+table.feed td.mono, .mono { font-family: ui-monospace, monospace; }
+table.feed td.nowrap { white-space: nowrap; }
+table.feed tr.synthetic td:first-child::before { content: '✨'; margin-right: .2rem; opacity: .5; }
+table.feed tr.is-you { background: rgba(62,207,142,.08); }
+.ipm { color: var(--muted); font-family: ui-monospace, monospace; font-size: .92em; }
+.muted { color: var(--muted); }
+.sens { color: var(--warn); font-size: .92em; white-space: nowrap; }
+.badge-chip { display: inline-block; padding: .1rem .4rem; border-radius: 5px; font-size: .78rem; white-space: nowrap; border: 1px solid var(--border); }
+.badge-chip.human { color: var(--ok); border-color: var(--ok); }
+.badge-chip.bot { color: var(--err); border-color: var(--err); }
+.badge-chip.unver { color: var(--warn); border-color: var(--warn); }

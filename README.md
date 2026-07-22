@@ -54,11 +54,17 @@ flowchart LR
 ```
 ├── src/
 │   ├── server.js            # Entry point: exporta app (Vercel) o hace listen (local)
-│   ├── app.js               # Express: middleware, estáticos, rutas, errores
+│   ├── app.js               # Express: middleware (incl. auditoría), estáticos, rutas, errores
 │   ├── config/dynamo.js     # Cliente único DynamoDB + prefijos de clave + isDynamoEnabled()
-│   ├── routes/              # items (CRUD demo), status (health + conexiones)
+│   ├── routes/              # items (CRUD), status (health), traffic (monitorización)
 │   └── services/            # Lógica: DynamoDB con fallback a memoria
+│       ├── itemsService.js
+│       ├── statusService.js
+│       └── trafficService.js  # Captura, redacción de sensibles, bots, agregados
 ├── public/                  # Showcase (HTML + CSS + JS vanilla, diagramas Mermaid)
+│   ├── js/track.js          # Beacon de fingerprint (identificación de visitantes)
+│   ├── js/traffic.js        # Dashboard de tráfico (gráficos SVG)
+│   ├── robots.txt · sitemap.xml · og.svg   # SEO
 ├── infra/dynamodb.yml       # CloudFormation: tabla con TTL, PITR y DeletionPolicy: Retain
 ├── scripts/
 │   ├── setup-aws.sh         # Crea usuario IAM runtime (Vercel) acotado a la tabla
@@ -157,6 +163,37 @@ vercel domains add vedtemplate.infranettone.com
   transpila también los `.js` de `public/` a CommonJS y rompe los módulos ES del navegador
   (`require is not defined`). Usa `rewrites` + `api/index.js` y deja `public/` como estático.
 
+## Monitorización de tráfico e identificación de visitantes
+
+Herramienta de analítica **integrada en la propia app** (no un SaaS externo). Responde a: cuánta
+gente visita, quién es, desde dónde, si son humanos o bots, y si el tráfico crece. Se ve en la
+pestaña **📡 Traffic** del showcase.
+
+- **Captura server-side**: un middleware registra cada acceso (método, ruta, UA→navegador/SO/
+  dispositivo, geo desde el edge de Vercel, referrer, clasificación bot).
+- **Identificación de visitantes**: `public/js/track.js` calcula un *fingerprint* del navegador
+  (canvas + señales no personales, hasheadas con SubtleCrypto) y lo envía a `/api/traffic/track`.
+  Permite contar únicos y detectar recurrentes sin login. Respeta `Do-Not-Track`.
+- **Detección de bots**: firma en el User-Agent (Googlebot, curl, headless…) + ausencia de beacon
+  JS ⇒ humano confirmado / sin verificar / bot / buscador.
+- **Tendencia**: comparación 1h vs 1h previa y 24h vs 24h previas, y serie horaria de 24h.
+- **Privacidad por diseño** (la web es pública): los valores sensibles de request/response
+  (Authorization, cookies, query strings) se **captan para auditoría pero nunca se almacenan ni se
+  muestran en claro**. La IP se guarda enmascarada (último octeto fuera) y con un hash con sal para
+  contar únicos sin revelar la dirección. Los tests garantizan que no se filtran.
+- **Demostrable**: `POST /api/traffic/simulate` inyecta tráfico sintético variado para ver el
+  dashboard vivo sin esperar visitas reales.
+
+Almacenamiento (single-table): `EVENT` (un acceso, TTL 7 días) y `VISITOR` (perfil por
+fingerprint). Los agregados se calculan al leer, así no hay rollups que desincronizar.
+
+## SEO
+
+La plantilla viene con SEO on-page listo: `<title>` y meta description descriptivos, Open Graph/
+Twitter cards, URL canónica, **datos estructurados JSON-LD** (Organization + Person +
+SoftwareApplication), `robots.txt` y `sitemap.xml`. La pestaña **🔎 SEO** del showcase explica en
+lenguaje llano cómo funciona un buscador (crawl → index → rank) y qué hace la plantilla por ti.
+
 ## API
 
 | Método | Ruta | Descripción |
@@ -166,6 +203,10 @@ vercel domains add vedtemplate.infranettone.com
 | GET | `/api/items` | Lista registros (100 máx., recientes primero) |
 | POST | `/api/items` | Crea registro `{"text": "..."}` |
 | DELETE | `/api/items/:id` | Borra registro |
+| GET | `/api/traffic` | Dashboard agregado (KPIs, serie, tops, feed redactado) |
+| GET | `/api/traffic/visitors` | Visitantes identificados |
+| POST | `/api/traffic/track` | Beacon de fingerprint (lo llama `track.js`) |
+| POST | `/api/traffic/simulate` | Inyecta tráfico sintético para la demo |
 
 ## Tests
 

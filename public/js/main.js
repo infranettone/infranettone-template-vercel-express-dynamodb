@@ -2,6 +2,7 @@
 // Sin frameworks: fetch + DOM, para que la plantilla sea legible de un vistazo.
 
 import { LANGS, translations, jsDefaults } from './i18n.js';
+import { initTraffic } from './traffic.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -18,6 +19,7 @@ function t(key) {
 
 function applyLang(newLang) {
   lang = newLang;
+  window.__lang = lang;
   localStorage.setItem('lang', lang);
   document.documentElement.lang = lang;
   const dict = translations[lang] || {};
@@ -35,6 +37,7 @@ function applyLang(newLang) {
   // Re-pintar las zonas generadas por JS con las cadenas del idioma nuevo.
   if (lastStatus) paintStatus(lastStatus);
   if (lastItems) paintItems(lastItems);
+  window.dispatchEvent(new Event('vt-lang'));
 }
 
 function renderLangSwitcher() {
@@ -72,15 +75,24 @@ async function renderDiagrams(section) {
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
 
-// ── Pestañas ────────────────────────────────────────────────────────────────
+// ── Pestañas (con deep-linking por hash: /#trafico) ─────────────────────────
+function activateTab(tab) {
+  const btn = $(`#tabs button[data-tab="${tab}"]`);
+  if (!btn) return;
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.remove('active'));
+  document.querySelectorAll('section.tab').forEach((s) => s.classList.remove('active'));
+  btn.classList.add('active');
+  const section = $(`#tab-${tab}`);
+  section.classList.add('active');
+  renderDiagrams(section);
+  // El dashboard de tráfico se carga la primera vez que se abre su pestaña.
+  if (tab === 'trafico') initTraffic();
+}
+
 document.querySelectorAll('#tabs button').forEach((btn) => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('#tabs button').forEach((b) => b.classList.remove('active'));
-    document.querySelectorAll('section.tab').forEach((s) => s.classList.remove('active'));
-    btn.classList.add('active');
-    const section = $(`#tab-${btn.dataset.tab}`);
-    section.classList.add('active');
-    renderDiagrams(section);
+    history.replaceState(null, '', '#' + btn.dataset.tab);
+    activateTab(btn.dataset.tab);
   });
 });
 
@@ -196,3 +208,6 @@ $('#curl-examples').textContent = $('#curl-examples').textContent
 applyLang(lang);
 loadStatus();
 loadItems();
+// Deep-link inicial: si la URL trae #<tab>, abrir esa pestaña.
+const initialTab = location.hash.replace('#', '');
+if (initialTab) activateTab(initialTab);
