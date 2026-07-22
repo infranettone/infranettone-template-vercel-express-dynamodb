@@ -4,7 +4,7 @@ Description: Tabla DynamoDB unica (single-table design) que respalda la plantill
 Parameters:
   TableName:
     Type: String
-    Default: template-app
+    Default: vedtemplate-app
     Description: Nombre de la tabla DynamoDB.
 
 Resources:

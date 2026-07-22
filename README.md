@@ -1,7 +1,11 @@
-# 🧩 Plantilla: Vercel + Express + DynamoDB
+# 🧩 vedtemplate — Plantilla: Vercel + Express + DynamoDB
 
 [![CI](https://github.com/infranettone/infranettone-template-vercel-express-dynamodb/actions/workflows/ci.yml/badge.svg)](https://github.com/infranettone/infranettone-template-vercel-express-dynamodb/actions/workflows/ci.yml)
-**Demo en producción:** https://infranettone-template-vercel-expres.vercel.app
+**Demo en producción:** https://vedtemplate.infranettone.com
+
+Todos los recursos de esta instancia llevan el prefijo **vedtemplate**: stack CloudFormation y
+tabla DynamoDB `vedtemplate-app`, usuarios IAM `vedtemplate-app-deploy` (pipeline) y
+`vedtemplate-app-vercel` (runtime).
 
 Plantilla **productiva y totalmente funcional** para nuevas apps: un solo repo con frontend
 estático, API Express, infraestructura como código (CloudFormation) y CI (GitHub Actions),
@@ -23,7 +27,7 @@ flowchart LR
     FN["Función serverless<br/>src/server.js → Express"]
   end
   subgraph AWS["AWS eu-west-1"]
-    DDB[("DynamoDB<br/>tabla template-app<br/>pk/sk · pay-per-request")]
+    DDB[("DynamoDB<br/>tabla vedtemplate-app<br/>pk/sk · pay-per-request")]
   end
   subgraph GitHub
     GHA[["Actions: ci.yml<br/>deploy-infra.yml"]]
@@ -88,7 +92,7 @@ flowchart LR
    ```bash
    ./scripts/setup-github-secrets.sh --profile miperfil --repo usuario/repo
    gh workflow run deploy-infra.yml
-   # o a mano: aws cloudformation deploy --template-file infra/dynamodb.yml --stack-name template-app
+   # o a mano: aws cloudformation deploy --template-file infra/dynamodb.yml --stack-name vedtemplate-app
    ```
 5. **Conectar Vercel a la tabla**:
    ```bash
@@ -96,6 +100,58 @@ flowchart LR
    # pega las 4 variables en Vercel → Settings → Environment Variables → redeploy
    ```
 6. **Seed opcional**: `cp .env.example .env` (mismas credenciales) y `npm run seed`.
+
+## Despliegue 100% por CLI (flujo real usado para esta instancia)
+
+Esta instancia se desplegó entera desde terminal, sin pasar por las webs salvo dos
+autorizaciones OAuth de un solo clic. Comandos reales, en orden:
+
+```bash
+# 0) Herramientas (una sola vez)
+#    gh:     binario oficial en ~/.local/bin (no necesita sudo) + `gh auth login`
+#    vercel: npm install -g vercel  (hace login por device-code al primer uso)
+
+# 1) Repo en GitHub (público) y marcado como template
+gh repo create infranettone/infranettone-template-vercel-express-dynamodb \
+  --public --source . --push
+gh api -X PATCH repos/OWNER/REPO -f is_template=true
+
+# 2) Proyecto en Vercel + primer deploy a producción
+vercel link --yes --project <nombre-proyecto>
+vercel deploy --prod --yes
+
+# 3) La protección de despliegues viene ACTIVADA por defecto (la web pide
+#    login de Vercel). Se desactiva por API para hacerla pública:
+#    PATCH https://api.vercel.com/v9/projects/<projectId>?teamId=<teamId>
+#    body: {"ssoProtection": null}
+
+# 4) Auto-deploy en cada push: instalar la GitHub App de Vercel en la org
+#    (única parte manual: https://github.com/apps/vercel) y luego:
+vercel git connect --yes
+
+# 5) Infra AWS: usuario IAM del pipeline + secretos + stack
+./scripts/setup-github-secrets.sh --profile <perfil> --repo OWNER/REPO
+gh workflow run deploy-infra.yml && gh run watch
+
+# 6) Credenciales runtime y variables en Vercel (sin tocar el dashboard)
+./scripts/setup-aws.sh --profile <perfil>
+printf 'eu-west-1'        | vercel env add AWS_REGION production
+printf 'vedtemplate-app'  | vercel env add DYNAMODB_TABLE production
+printf '<KEY_ID>'         | vercel env add AWS_ACCESS_KEY_ID production
+printf '<SECRET>'         | vercel env add AWS_SECRET_ACCESS_KEY production --sensitive
+vercel redeploy <url-del-último-deploy>
+
+# 7) Dominio propio
+vercel domains add vedtemplate.infranettone.com
+```
+
+**Gotchas aprendidos en el camino** (ya corregidos en la plantilla):
+
+- Node 20 (el de Actions) no expande globs en `node --test`: usa rutas explícitas.
+- Vercel trunca el dominio `*.vercel.app` si el nombre del proyecto es muy largo.
+- Vercel define `AWS_REGION` por su cuenta en el runtime; no te fíes de ella como señal
+  de configuración (el panel de estado comprueba las credenciales, no la región).
+- Los repos generados desde un template **no heredan los secretos**: repite el paso 5.
 
 ## API
 

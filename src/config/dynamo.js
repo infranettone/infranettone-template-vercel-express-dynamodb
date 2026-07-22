@@ -11,7 +11,7 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE || 'template-app';
+const TABLE_NAME = process.env.DYNAMODB_TABLE || 'vedtemplate-app';
 const REGION = process.env.AWS_REGION || 'eu-west-1';
 
 // Prefijos de clave centralizados para que los servicios no diverjan.

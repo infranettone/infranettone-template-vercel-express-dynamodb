@@ -17,9 +17,9 @@ set -euo pipefail
 
 PROFILE=""
 REGION="eu-west-1"
-STACK_NAME="template-app"
-USER_NAME="template-app-vercel"
-POLICY_NAME="template-app-dynamodb"
+STACK_NAME="vedtemplate-app"
+USER_NAME="vedtemplate-app-vercel"
+POLICY_NAME="vedtemplate-app-dynamodb"
 NEW_KEY=false
 
 usage() {

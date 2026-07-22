@@ -1,5 +1,5 @@
 {
-  "name": "template-vercel-express-dynamodb",
+  "name": "vedtemplate",
   "version": "1.0.0",
   "description": "Plantilla productiva: Express + frontend estático + DynamoDB (AWS) desplegada gratis en Vercel, con showcase de arquitectura integrado.",
   "main": "src/server.js",

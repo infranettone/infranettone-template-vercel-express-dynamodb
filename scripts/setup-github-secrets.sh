@@ -13,9 +13,9 @@ set -euo pipefail
 PROFILE=""
 REGION="eu-west-1"
 REPO=""
-USER_NAME="template-app-deploy"
-POLICY_NAME="template-app-deploy"
-STACK_NAME="template-app"
+USER_NAME="vedtemplate-app-deploy"
+POLICY_NAME="vedtemplate-app-deploy"
+STACK_NAME="vedtemplate-app"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

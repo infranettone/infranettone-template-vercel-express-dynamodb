@@ -12,8 +12,8 @@ on:
 
 env:
   AWS_REGION: eu-west-1
-  STACK_NAME: template-app
-  TABLE_NAME: template-app
+  STACK_NAME: vedtemplate-app
+  TABLE_NAME: vedtemplate-app
 
 # Nunca dejar que dos actualizaciones del stack compitan entre sí.
 concurrency:

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plantilla Vercel + Express + DynamoDB — Showcase</title>
+  <title>vedtemplate — Plantilla Vercel + Express + DynamoDB</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/styles/base.css" />
   <script type="module" src="/js/main.js"></script>
   <script type="module">
@@ -14,7 +15,7 @@
 </head>
 <body>
   <header>
-    <h1>🧩 Plantilla · Vercel + Express + DynamoDB</h1>
+    <h1>🧩 vedtemplate · Vercel + Express + DynamoDB</h1>
     <p class="subtitle">
       Showcase autoexplicativo: qué contiene la plantilla, cómo está conectado todo,
       cómo se despliega y una demo funcional contra la base de datos.
@@ -49,7 +50,7 @@ flowchart LR
     FN["Función serverless<br/>src/server.js → Express"]
   end
   subgraph AWS["AWS (eu-west-1)"]
-    DDB[("DynamoDB<br/>tabla template-app<br/>pk / sk")]
+    DDB[("DynamoDB<br/>tabla vedtemplate-app<br/>pk / sk")]
   end
   subgraph GitHub
     GHA[["Actions:<br/>ci.yml + deploy-infra.yml"]]
@@ -200,7 +201,7 @@ gh workflow run deploy-infra.yml
 
 # B) A mano desde tu máquina
 aws cloudformation deploy --template-file infra/dynamodb.yml \
-  --stack-name template-app --profile miperfil --region eu-west-1</pre>
+  --stack-name vedtemplate-app --profile miperfil --region eu-west-1</pre>
       </li>
       <li>
         <strong>Crear el usuario IAM de la app y conectar Vercel</strong>
@@ -214,6 +215,41 @@ aws cloudformation deploy --template-file infra/dynamodb.yml \
 npm run seed</pre>
       </li>
     </ol>
+
+    <h2>Despliegue 100% por CLI — flujo real de esta instancia</h2>
+    <p>
+      Esta instancia (<a href="https://vedtemplate.infranettone.com">vedtemplate.infranettone.com</a>)
+      se desplegó entera desde terminal. Solo hubo <strong>dos autorizaciones manuales</strong> de
+      un clic: el login por device-code (gh y vercel) y la instalación de la GitHub App de Vercel
+      en la organización para el auto-deploy.
+    </p>
+    <pre class="code"># 1) Repo público en GitHub, marcado como template
+gh repo create infranettone/infranettone-template-vercel-express-dynamodb --public --source . --push
+gh api -X PATCH repos/OWNER/REPO -f is_template=true
+
+# 2) Proyecto Vercel + primer deploy (funciona ya, en modo memoria)
+vercel link --yes --project &lt;nombre&gt; &amp;&amp; vercel deploy --prod --yes
+
+# 3) Hacer la web pública: la Deployment Protection viene activada por defecto
+#    PATCH /v9/projects/&lt;id&gt;?teamId=&lt;team&gt;  {"ssoProtection": null}
+
+# 4) Auto-deploy: instalar github.com/apps/vercel en la org y...
+vercel git connect --yes
+
+# 5) Infra AWS por pipeline (usuario IAM deploy + secretos + stack + tabla)
+./scripts/setup-github-secrets.sh --profile &lt;perfil&gt; --repo OWNER/REPO
+gh workflow run deploy-infra.yml
+
+# 6) Credenciales runtime → variables en Vercel por CLI → redeploy
+./scripts/setup-aws.sh --profile &lt;perfil&gt;
+printf '&lt;valor&gt;' | vercel env add AWS_SECRET_ACCESS_KEY production --sensitive
+vercel redeploy &lt;url&gt;</pre>
+    <p class="hint">
+      Gotchas ya corregidos en la plantilla: Node 20 no expande globs en <code>node --test</code>;
+      Vercel trunca el dominio <code>*.vercel.app</code> con nombres largos; Vercel define su
+      propia <code>AWS_REGION</code> en runtime; los repos generados desde un template no heredan
+      los secretos de GitHub.
+    </p>
 
     <h2>Variables de entorno</h2>
     <div class="card">
