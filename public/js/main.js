@@ -75,7 +75,7 @@ async function renderDiagrams(section) {
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
 
-// ── Tabs (with hash deep-linking: /#trafico) ────────────────────────────────
+// ── Tabs (with hash deep-linking: /#traffic) ────────────────────────────────
 function activateTab(tab) {
   const btn = $(`#tabs button[data-tab="${tab}"]`);
   if (!btn) return;
@@ -86,7 +86,7 @@ function activateTab(tab) {
   section.classList.add('active');
   renderDiagrams(section);
   // The traffic dashboard loads the first time its tab is opened.
-  if (tab === 'trafico') initTraffic();
+  if (tab === 'traffic') initTraffic();
 }
 
 document.querySelectorAll('#tabs button').forEach((btn) => {

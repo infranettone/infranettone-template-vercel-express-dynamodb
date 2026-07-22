@@ -118,6 +118,24 @@ test('limit bounds the loaded events and flags capped', async () => {
   if (d.events.length === 50) assert.strictEqual(d.capped, true);
 });
 
+test('events carry sparse GSI1 keys but the redacted view strips them', () => {
+  const req = {
+    method: 'GET', path: '/', originalUrl: '/',
+    socket: { remoteAddress: '1.2.3.4' },
+    headers: { 'user-agent': 'curl/8', 'x-vercel-ip-country': 'es' },
+  };
+  const ev = buildEvent(req, {});
+  assert.strictEqual(ev.gsi1pk, 'C#ES');
+  assert.ok(ev.gsi1sk);
+  assert.ok(!('gsi1pk' in redactEvent(ev)));
+});
+
+test('the country filter returns only that country', async () => {
+  const d = await fetch(`${base}/api/traffic?range=24h&limit=2000&country=ES`).then((r) => r.json());
+  assert.strictEqual(d.country, 'ES');
+  for (const e of d.events) assert.strictEqual(e.country, 'ES');
+});
+
 test('a custom range only returns events inside the window', async () => {
   const to = new Date().toISOString();
   const from = new Date(Date.now() - 3600e3).toISOString(); // last hour

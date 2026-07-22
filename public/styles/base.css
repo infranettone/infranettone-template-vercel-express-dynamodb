@@ -146,6 +146,29 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
   border-radius: 8px; padding: .4rem .6rem; font-size: .88rem;
 }
 .tr-you { color: var(--ok); font-size: .85rem; font-family: ui-monospace, monospace; align-self: center; }
+.tr-live { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .85rem; cursor: pointer; align-self: center; }
+.tr-live input { accent-color: var(--accent); }
+
+/* Country filter chip */
+.tr-country-chip { background: var(--panel2); border: 1px solid var(--accent); border-radius: 999px; padding: .3rem .7rem; font-size: .85rem; margin: .2rem 0 .6rem; display: inline-flex; align-items: center; gap: .5rem; }
+.tr-country-chip.hidden { display: none; }
+.chip-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: 0 .2rem; }
+.chip-x:hover { color: var(--err); }
+
+/* World map */
+.viz.map { background: transparent; }
+.map-bg { fill: var(--panel2); opacity: .4; }
+.viz .grid.equator { stroke: var(--muted); stroke-dasharray: 3 3; opacity: .5; }
+.map-bubble { cursor: pointer; }
+.map-bubble:hover circle { fill-opacity: .8; }
+.map-label { fill: #fff; font-size: 9px; font-family: ui-monospace, monospace; pointer-events: none; }
+
+/* Export buttons */
+.tr-export { display: inline-flex; gap: .4rem; margin-left: auto; }
+.tr-export .btn { padding: .3rem .7rem; font-size: .82rem; }
+.hbar-row.clickable { cursor: pointer; }
+.hbar-row.clickable:hover .hbar-label { color: var(--accent); }
+td .exact { font-size: .82em; color: var(--muted); }
 .tr-capped {
   background: rgba(245,184,61,.1); border: 1px solid var(--warn); color: var(--warn);
   border-radius: 8px; padding: .55rem .8rem; font-size: .85rem; margin: .2rem 0 1rem;

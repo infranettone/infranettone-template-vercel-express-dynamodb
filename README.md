@@ -15,7 +15,7 @@ The deployed app is itself a **self-explanatory showcase** and **multilingual (E
 Spanish and Mallorcan)**, with these tabs: **Architecture** (diagrams), **📡 Traffic** (a live web
 monitoring and visitor-identification tool), **Connections** (real DynamoDB status with latency),
 **CRUD demo** against the database, **Deployment** step by step, **🔎 SEO** (a plain-language
-explainer) and **API & Tests**. Each tab is hash-linkable (`…/#trafico`), and the chosen language is
+explainer) and **API & Tests**. Each tab is hash-linkable (`…/#traffic`), and the chosen language is
 remembered in `localStorage`.
 
 ## Architecture
@@ -72,7 +72,7 @@ flowchart LR
 │   ├── styles/base.css      # Styles (includes the traffic dashboard)
 │   ├── favicon.svg
 │   └── robots.txt · sitemap.xml · og.svg   # SEO
-├── infra/dynamodb.yml       # CloudFormation: table with TTL, PITR and DeletionPolicy: Retain
+├── infra/dynamodb.yml       # CloudFormation: table + GSI1, TTL, PITR, deletion protection, Retain
 ├── scripts/
 │   ├── setup-aws.sh         # Creates the runtime IAM user (Vercel) scoped to the table
 │   ├── setup-github-secrets.sh  # Creates the deploy IAM user and uploads secrets with gh
@@ -185,7 +185,17 @@ It's shown in the **📡 Traffic** tab of the showcase.
   uniques and detect returning visitors without a login. It honours `Do-Not-Track`.
 - **Bot detection**: a signature in the User-Agent (Googlebot, curl, headless…) + the absence of the
   JS beacon ⇒ confirmed human / unverified / bot / search engine.
-- **Trend**: comparison of 1h vs previous 1h and 24h vs previous 24h, plus a 24h hourly series.
+- **Time range (AWS-style)**: last hour / 24h / 7d / 30d / 90d / 1y / custom `[from,to]`. On
+  DynamoDB it's a sort-key `BETWEEN` Query, so narrowing the range narrows the scan (scales).
+- **Row limit** (100–2000) tied to the range; when reached the UI shows a "capped" note so a
+  million-row table never overloads the page. Adaptive series buckets (hourly/daily/monthly).
+- **Filter, sort, paginate, export**: filter the feed (all/humans/bots) and free-text search;
+  click any column to sort; paginate both tables; export the current view to CSV/JSON. Optional
+  "Live" auto-refresh (off by default — it only reads, never simulates).
+- **World map + country filter**: bubbles at country centroids; click one (or a Top-Country bar)
+  to filter the whole dashboard by country. At scale this is served by a **GSI** (`gsi1pk =
+  "C#<country>"`), so a country query reads only that country's key range.
+- **Trend**: momentum within the selected range (recent half vs earlier half).
 - **Privacy by design** (the site is public): sensitive request/response values (Authorization,
   cookies, query strings) are **captured for auditing but never stored or shown in clear**. The IP
   is stored masked (last octet dropped) and with a salted hash to count uniques without revealing
@@ -194,7 +204,8 @@ It's shown in the **📡 Traffic** tab of the showcase.
   dashboard live without waiting for real visits.
 
 Storage (single-table): `EVENT` (one access, TTL 7 days) and `VISITOR` (profile per fingerprint).
-Aggregates are computed on read, so there are no rollups to drift out of sync.
+Aggregates are computed on read, so there are no rollups to drift out of sync. The table has
+**deletion protection** enabled and one **GSI** (`GSI1`) for country-scoped queries.
 
 ## SEO
 
@@ -220,7 +231,7 @@ plain language how a search engine works (crawl → index → rank) and what the
 ## Tests
 
 `npm test` uses Node's native runner (`node --test`, zero dependencies), boots the real app on an
-ephemeral port and runs **14 tests** in memory mode — identical locally and in CI:
+ephemeral port and runs **19 tests** in memory mode — identical locally and in CI:
 
 - `tests/app.test.js` — health, status, full CRUD, 400/404 errors, and that the frontend is served.
 - `tests/traffic.test.js` — IP masking, User-Agent parsing, bot classification, the beacon flow,

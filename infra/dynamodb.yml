@@ -15,6 +15,10 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       TableName: !Ref TableName
+      # Deletion protection: the table can't be deleted (via API/console) until
+      # it's explicitly turned off. Complements DeletionPolicy: Retain, which
+      # only stops CloudFormation from deleting it on stack removal.
+      DeletionProtectionEnabled: true
       # Single-table design: each entity is discriminated by the pk prefix
       # (ITEM, ...). PAY_PER_REQUEST = 0 cost with no traffic (free tier).
       BillingMode: PAY_PER_REQUEST
@@ -23,11 +27,28 @@ Resources:
           AttributeType: S
         - AttributeName: sk
           AttributeType: S
+        # GSI1 keys: sparse index. Access-log events set gsi1pk = "C#<country>"
+        # and gsi1sk = <iso ts>, so the dashboard can filter by country over a
+        # time range efficiently even when the table grows to millions of rows
+        # (the query reads only that country's key range, not the whole table).
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
       KeySchema:
         - AttributeName: pk
           KeyType: HASH
         - AttributeName: sk
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       # Entities that should expire on their own carry a `ttl` attribute
       # (epoch seconds); the rest simply omit it.
       TimeToLiveSpecification:

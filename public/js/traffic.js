@@ -19,13 +19,28 @@ const C = { human: '#3987e5', bot: '#d95926', s3: '#199e70', s4: '#c98500', s5: 
 
 // UI state (survives re-renders; never triggers a fetch on its own except load()).
 const ui = {
-  range: '24h', from: '', to: '', limit: 500,
+  range: '24h', from: '', to: '', limit: 500, country: '', auto: false,
   feed: { sort: { col: 'ts', dir: 'desc' }, page: 1, size: 25, filter: 'all', search: '' },
   visitors: { sort: { col: 'lastSeen', dir: 'desc' }, page: 1, size: 25 },
 };
+let autoTimer = null;
+const AUTO_MS = 15000;
 
 const RANGES = ['1h', '24h', '7d', '30d', '90d', '1y', 'custom'];
 const LIMITS = [100, 250, 500, 1000, 2000];
+
+// Approximate country centroids [lat, lon] for the world map. Codes not listed
+// (and LOCAL/ZZ) simply don't appear on the map — they still show in the lists.
+const CENTROIDS = {
+  ES: [40, -4], US: [38, -97], DE: [51, 10], FR: [46, 2], GB: [54, -2], MX: [23, -102],
+  AR: [-34, -64], BR: [-10, -52], IT: [42, 12], NL: [52, 5], JP: [36, 138], PT: [39, -8],
+  CA: [56, -106], AU: [-25, 133], IN: [22, 79], CN: [35, 105], RU: [61, 100], ZA: [-29, 24],
+  NG: [9, 8], EG: [26, 30], SE: [62, 15], NO: [62, 10], PL: [52, 19], TR: [39, 35], SA: [24, 45],
+  AE: [24, 54], SG: [1, 104], KR: [36, 128], ID: [-2, 118], TH: [15, 101], VN: [16, 106],
+  PH: [13, 122], CL: [-30, -71], CO: [4, -72], PE: [-10, -76], IE: [53, -8], BE: [51, 4],
+  CH: [47, 8], AT: [47, 14], DK: [56, 10], FI: [64, 26], GR: [39, 22], CZ: [50, 15], RO: [46, 25],
+  UA: [49, 32], MA: [32, -6], IL: [31, 35], NZ: [-42, 173], KE: [0, 38], PK: [30, 70],
+};
 
 // ── small helpers ────────────────────────────────────────────────────────────
 function flag(cc) {
@@ -79,6 +94,7 @@ function renderControls() {
       <select id="tr-limit">${LIMITS.map((n) => opt(n, ui.limit, String(n))).join('')}</select>
     </div>
     <button id="tr-refresh" class="btn">${t('tr.refresh')}</button>
+    <label class="tr-live"><input type="checkbox" id="tr-auto" ${ui.auto ? 'checked' : ''} /> ${t('tr.live')}</label>
     <button id="tr-sim" class="btn primary">${t('tr.simulate')}</button>
     <span id="tr-you" class="tr-you"></span>`;
 
@@ -92,8 +108,36 @@ function renderControls() {
   $('#tr-from')?.addEventListener('change', custom);
   $('#tr-to')?.addEventListener('change', custom);
   $('#tr-refresh').addEventListener('click', load);
+  $('#tr-auto').addEventListener('change', (e) => setAuto(e.target.checked));
   $('#tr-sim').addEventListener('click', onSimulate);
   paintYou();
+}
+
+// Auto-refresh: OFF by default. When on, it only calls load() (read-only GET)
+// on a timer — it NEVER simulates. Toggling it off clears the timer.
+function setAuto(on) {
+  ui.auto = on;
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  if (on) autoTimer = setInterval(load, AUTO_MS);
+}
+
+// Country filter chip (set by clicking a bar in the map or Top countries).
+function setCountry(cc) {
+  ui.country = ui.country === cc ? '' : cc;
+  ui.feed.page = 1;
+  load();
+}
+function renderCountryChip() {
+  const box = $('#tr-country-chip');
+  if (!box) return;
+  if (ui.country) {
+    box.classList.remove('hidden');
+    box.innerHTML = `${t('tr.filtered')} <strong>${flag(ui.country)} ${esc(ui.country)}</strong> <button id="tr-clear-country" class="chip-x" title="${t('tr.clear')}">✕</button>`;
+    $('#tr-clear-country').addEventListener('click', () => setCountry(ui.country));
+  } else {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+  }
 }
 function paintYou() {
   const el = $('#tr-you');
@@ -184,12 +228,12 @@ function renderSeries(series) {
 }
 
 // ── horizontal bars (tops) ───────────────────────────────────────────────────
-function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) {
+function renderBars(id, items, { color = C.human, label = (k) => esc(k), onClick = null } = {}) {
   const box = $('#' + id);
   if (!items.length) { box.innerHTML = `<p class="hint">${t('tr.nodata')}</p>`; return; }
   const max = Math.max(...items.map((i) => i.count));
   box.innerHTML = '<div class="hbars">' + items.map((i) => `
-    <div class="hbar-row" data-tip="${esc(i.key + ' · ' + i.count)}">
+    <div class="hbar-row ${onClick ? 'clickable' : ''}" data-k="${esc(i.key)}" data-tip="${esc(i.key + ' · ' + i.count)}">
       <div class="hbar-label">${label(i.key)}</div>
       <div class="hbar-track"><div class="hbar-fill" style="width:${(i.count / max) * 100}%;background:${color}"></div></div>
       <div class="hbar-val">${i.count}</div>
@@ -197,7 +241,65 @@ function renderBars(id, items, { color = C.human, label = (k) => esc(k) } = {}) 
   box.querySelectorAll('.hbar-row').forEach((el) => {
     el.addEventListener('mousemove', (e) => showTip(el.dataset.tip, e.clientX, e.clientY));
     el.addEventListener('mouseleave', hideTip);
+    if (onClick) el.addEventListener('click', () => onClick(el.dataset.k));
   });
+}
+
+// ── world map (bubbles at country centroids, equirectangular) ────────────────
+function renderMap(countries) {
+  const box = $('#tr-map');
+  const plotted = countries.filter((c) => CENTROIDS[c.key]);
+  if (!plotted.length) { box.innerHTML = `<p class="hint">${t('tr.map.none')}</p>`; return; }
+  const W = 760, H = 380, maxR = 30, minR = 5;
+  const max = Math.max(...plotted.map((c) => c.count));
+  const proj = (lat, lon) => [((lon + 180) / 360) * W, ((90 - lat) / 180) * H];
+
+  // Faint graticule so the plot reads as a world map.
+  let grid = '';
+  [-60, -30, 0, 30, 60].forEach((lat) => { const [, y] = proj(lat, 0); grid += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" class="grid"/>`; });
+  [-120, -60, 0, 60, 120].forEach((lon) => { const [x] = proj(0, lon); grid += `<line x1="${x}" x2="${x}" y1="0" y2="${H}" class="grid"/>`; });
+  grid += `<line x1="0" x2="${W}" y1="${proj(0, 0)[1]}" y2="${proj(0, 0)[1]}" class="grid equator"/>`;
+
+  const bubbles = plotted.map((c) => {
+    const [lat, lon] = CENTROIDS[c.key];
+    const [x, y] = proj(lat, lon);
+    const r = minR + (maxR - minR) * Math.sqrt(c.count / max);
+    const active = ui.country === c.key;
+    return `<g class="map-bubble" data-k="${c.key}" data-tip="${esc(flag(c.key) + ' ' + c.key + ' · ' + c.count)}">
+      <circle cx="${x}" cy="${y}" r="${r}" fill="${C.human}" fill-opacity="${active ? 0.85 : 0.5}" stroke="${active ? '#fff' : C.human}" stroke-width="${active ? 2 : 1}"/>
+      <text x="${x}" y="${y + 3}" text-anchor="middle" class="map-label">${c.key}</text>
+    </g>`;
+  }).join('');
+
+  box.innerHTML = `<div class="viz-scroll"><svg viewBox="0 0 ${W} ${H}" class="viz map" preserveAspectRatio="xMidYMid meet">
+    <rect x="0" y="0" width="${W}" height="${H}" class="map-bg"/>${grid}${bubbles}
+  </svg></div>`;
+  box.querySelectorAll('.map-bubble').forEach((el) => {
+    el.addEventListener('mousemove', (e) => showTip(el.dataset.tip, e.clientX, e.clientY));
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('click', () => setCountry(el.dataset.k));
+  });
+}
+
+// ── CSV / JSON export of the currently filtered feed ─────────────────────────
+function download(name, mime, content) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportFeed(format) {
+  const rows = feedRows();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  if (format === 'json') {
+    download(`vedtemplate-traffic-${stamp}.json`, 'application/json', JSON.stringify(rows, null, 2));
+    return;
+  }
+  const cols = ['ts', 'type', 'method', 'path', 'country', 'city', 'ipMasked', 'browser', 'os', 'device', 'isBot', 'botKind', 'beacon', 'refererHost', 'visitorId'];
+  const escCsv = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const lines = [cols.join(',')].concat(rows.map((r) => cols.map((c) => escCsv(r[c])).join(',')));
+  download(`vedtemplate-traffic-${stamp}.csv`, 'text/csv', lines.join('\n'));
 }
 
 // ── reusable sortable + paginated table ──────────────────────────────────────
@@ -278,14 +380,21 @@ function renderFeedControls() {
   const chip = (v, label) => `<button class="fbtn ${f.filter === v ? 'active' : ''}" data-f="${v}">${label}</button>`;
   box.innerHTML = `
     <div class="fbtns">${chip('all', t('tr.filter.all'))}${chip('humans', t('tr.filter.humans'))}${chip('bots', t('tr.filter.bots'))}</div>
-    <input id="tr-search" class="tr-search" type="search" placeholder="${t('tr.search')}" value="${esc(f.search)}" />`;
+    <input id="tr-search" class="tr-search" type="search" placeholder="${t('tr.search')}" value="${esc(f.search)}" />
+    <div class="tr-export">
+      <button class="btn" id="tr-csv">⬇ CSV</button>
+      <button class="btn" id="tr-json">⬇ JSON</button>
+    </div>`;
   box.querySelectorAll('.fbtn').forEach((b) => b.addEventListener('click', () => { f.filter = b.dataset.f; f.page = 1; renderFeed(); renderFeedControls(); }));
   const inp = $('#tr-search');
   inp.addEventListener('input', () => { f.search = inp.value; f.page = 1; renderFeed(); });
+  $('#tr-csv').addEventListener('click', () => exportFeed('csv'));
+  $('#tr-json').addEventListener('click', () => exportFeed('json'));
 }
 function renderFeed() {
   const cols = [
-    { key: 'ts', label: t('tr.col.time'), align: 'nowrap', get: (r) => r.ts, cell: (r) => `<span title="${esc(r.ts)}">${ago(r.ts)}</span>` },
+    { key: 'ago', label: t('tr.col.ago'), align: 'nowrap', get: (r) => r.ts, cell: (r) => `<span title="${esc(r.ts)}">${ago(r.ts)}</span>` },
+    { key: 'ts', label: t('tr.col.time'), align: 'nowrap', get: (r) => r.ts, cell: (r) => `<span class="mono exact">${new Date(r.ts).toLocaleString()}</span>` },
     { key: 'botKind', label: t('tr.col.class'), get: (r) => (r.isBot ? '2' : r.beacon ? '0' : '1') + r.botKind, cell: (r) => classBadge(r) },
     { key: 'path', label: t('tr.col.path'), get: (r) => r.method + r.path, cell: (r) => `<span class="mono">${esc(r.method)} ${esc(r.path)}${r.sensitive.captured ? ` <span class="sens" title="Authorization / Cookie / query">🔒 ${t('tr.sensitive')}</span>` : ''}</span>` },
     { key: 'country', label: t('tr.col.geo'), align: 'nowrap', get: (r) => r.country + (r.city || ''), cell: (r) => `${flag(r.country)} ${esc(r.country)}${r.city ? ' · ' + esc(r.city) : ''} <span class="ipm">${esc(r.ipMasked)}</span>` },
@@ -337,9 +446,11 @@ let lastDash = null;
 
 function paint(d) {
   renderCapped(d);
+  renderCountryChip();
   renderKpis(d);
   renderSeries(d.series);
-  renderBars('tr-countries', d.topCountries, { color: C.human, label: (k) => `${flag(k)} ${esc(k)}` });
+  renderMap(d.topCountries);
+  renderBars('tr-countries', d.topCountries, { color: C.human, label: (k) => `${flag(k)} ${esc(k)}`, onClick: setCountry });
   renderBars('tr-paths', d.topPaths, { color: C.s3 });
   renderBars('tr-referrers', d.topReferrers, { color: C.s4 });
   renderBars('tr-browsers', d.browsers, { color: C.s5 });
@@ -351,6 +462,7 @@ function paint(d) {
 
 function query() {
   const p = new URLSearchParams({ range: ui.range, limit: String(ui.limit) });
+  if (ui.country) p.set('country', ui.country);
   if (ui.range === 'custom') {
     if (ui.from) p.set('from', new Date(ui.from).toISOString());
     if (ui.to) p.set('to', new Date(ui.to).toISOString());

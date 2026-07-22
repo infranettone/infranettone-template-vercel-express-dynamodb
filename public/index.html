@@ -94,17 +94,17 @@
   </header>
 
   <nav id="tabs">
-    <button data-tab="arquitectura" class="active" data-i18n="tab.arch">🏗️ Architecture</button>
-    <button data-tab="trafico" data-i18n="tab.traffic">📡 Traffic</button>
-    <button data-tab="conexiones" data-i18n="tab.conn">🔌 Connections (live)</button>
+    <button data-tab="architecture" class="active" data-i18n="tab.arch">🏗️ Architecture</button>
+    <button data-tab="traffic" data-i18n="tab.traffic">📡 Traffic</button>
+    <button data-tab="connections" data-i18n="tab.conn">🔌 Connections (live)</button>
     <button data-tab="demo" data-i18n="tab.demo">🧪 CRUD demo</button>
-    <button data-tab="despliegue" data-i18n="tab.deploy">🚀 Deployment</button>
+    <button data-tab="deployment" data-i18n="tab.deploy">🚀 Deployment</button>
     <button data-tab="seo" data-i18n="tab.seo">🔎 SEO</button>
     <button data-tab="api" data-i18n="tab.api">📚 API &amp; Tests</button>
   </nav>
 
   <!-- ═══════════════ ARCHITECTURE ═══════════════ -->
-  <section id="tab-arquitectura" class="tab active">
+  <section id="tab-architecture" class="tab active">
     <h2 data-i18n="arch.h.overview">Overview</h2>
     <p data-i18n="arch.p.overview">
       A single repo contains the <strong>static frontend</strong>, the <strong>Express API</strong>
@@ -200,7 +200,7 @@ flowchart TD
   </section>
 
   <!-- ═══════════════ TRAFFIC ═══════════════ -->
-  <section id="tab-trafico" class="tab">
+  <section id="tab-traffic" class="tab">
     <h2 data-i18n="traffic.h">📡 Web traffic intelligence</h2>
     <p data-i18n="traffic.p">
       A monitoring, auditing and visitor-identification tool built into the app itself. It
@@ -217,12 +217,17 @@ flowchart TD
     </div>
 
     <div id="tr-controls" class="tr-controls"></div>
+    <div id="tr-country-chip" class="tr-country-chip hidden"></div>
     <div id="tr-capped" class="tr-capped hidden"></div>
 
     <div id="tr-kpis" class="grid kpi-grid">…</div>
 
     <h3 data-i18n="traffic.h.series">Accesses over time (humans vs bots)</h3>
     <div class="card"><div id="tr-series">…</div></div>
+
+    <h3 data-i18n="traffic.h.map">🗺️ Where visitors come from</h3>
+    <p class="hint" data-i18n="traffic.p.map">Bubbles sized by number of accesses, placed at each country's location. Click one to filter the whole dashboard by that country (served efficiently from the DynamoDB GSI).</p>
+    <div class="card"><div id="tr-map">…</div></div>
 
     <div class="tr-cols">
       <div class="card"><h3 data-i18n="traffic.h.countries">🌍 Top countries</h3><div id="tr-countries">…</div></div>
@@ -260,7 +265,7 @@ flowchart LR
   </section>
 
   <!-- ═══════════════ CONNECTIONS ═══════════════ -->
-  <section id="tab-conexiones" class="tab">
+  <section id="tab-connections" class="tab">
     <h2 data-i18n="conn.h">Live connection status</h2>
     <p data-i18n="conn.p">Data served by <code>GET /api/status</code>: the backend checks its environment variables and performs a real <code>DescribeTable</code> against DynamoDB.</p>
     <button id="refresh-status" class="btn" data-i18n="conn.refresh">↻ Refresh</button>
@@ -286,7 +291,7 @@ flowchart LR
   </section>
 
   <!-- ═══════════════ DEPLOYMENT ═══════════════ -->
-  <section id="tab-despliegue" class="tab">
+  <section id="tab-deployment" class="tab">
     <h2 data-i18n="deploy.h.pipeline">Deployment pipeline</h2>
     <div class="card">
       <pre class="mermaid">

@@ -157,6 +157,10 @@ function buildEvent(req, { beacon = false, client = null, type = 'api' } = {}) {
     ...bot,
     beacon,
     visitorId,
+    // GSI1: lets the dashboard filter by country over a time range straight
+    // from DynamoDB (see infra/dynamodb.yml). Sparse — only events set it.
+    gsi1pk: 'C#' + geo.country,
+    gsi1sk: now.toISOString(),
     // Sensitive signals: presence only, never content.
     hasAuth,
     cookieCount,
@@ -348,24 +352,38 @@ function clampLimit(v) {
 // Reads events within [startMs, endMs], newest first, bounded by `limit`.
 // On DynamoDB this is a range Query on the sort key (sk = "<iso>#<id>"), so only
 // the matching key range is read — it scales to huge tables because narrowing
-// the time range narrows the scan. Paginates until it reaches `limit`.
-async function queryEvents({ startMs, endMs, limit }) {
+// the time range narrows the scan. When `country` is set it queries GSI1
+// instead (gsi1pk = "C#<country>"), so a country filter is just as efficient at
+// scale. Paginates until it reaches `limit`.
+async function queryEvents({ startMs, endMs, limit, country }) {
   const startIso = new Date(startMs).toISOString();
   const endIso = new Date(endMs).toISOString();
   if (!isDynamoEnabled()) {
     return mem.events
-      .filter((e) => { const t = Date.parse(e.ts); return t >= startMs && t <= endMs; })
+      .filter((e) => {
+        const t = Date.parse(e.ts);
+        return t >= startMs && t <= endMs && (!country || e.country === country);
+      })
       .sort((a, b) => b.ts.localeCompare(a.ts))
       .slice(0, limit);
   }
+  const base = country
+    ? {
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'gsi1pk = :pk AND gsi1sk BETWEEN :a AND :b',
+        ExpressionAttributeValues: { ':pk': 'C#' + country, ':a': startIso, ':b': endIso + '￿' },
+      }
+    : {
+        KeyConditionExpression: 'pk = :pk AND sk BETWEEN :a AND :b',
+        ExpressionAttributeValues: { ':pk': KEYS.EVENT, ':a': startIso, ':b': endIso + '￿' },
+      };
   const out = [];
   let ExclusiveStartKey;
   let pages = 0;
   do {
     const res = await getDocClient().send(new QueryCommand({
       TableName: TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk AND sk BETWEEN :a AND :b',
-      ExpressionAttributeValues: { ':pk': KEYS.EVENT, ':a': startIso, ':b': endIso + '￿' },
+      ...base,
       ScanIndexForward: false,
       Limit: Math.min(limit - out.length, 1000),
       ExclusiveStartKey,
@@ -487,7 +505,8 @@ function trendHalves(events, startMs, endMs) {
 async function getDashboard(opts = {}) {
   const limit = clampLimit(opts.limit);
   const { startMs, endMs, range } = resolveWindow(opts);
-  const events = await queryEvents({ startMs, endMs, limit });
+  const country = opts.country ? String(opts.country).toUpperCase().slice(0, 8) : '';
+  const events = await queryEvents({ startMs, endMs, limit, country });
   const total = events.length;
   const capped = total >= limit;   // hit the ceiling → there may be more in range
   const humans = events.filter((e) => !e.isBot).length;
@@ -499,6 +518,7 @@ async function getDashboard(opts = {}) {
     generatedAt: new Date().toISOString(),
     mode: isDynamoEnabled() ? 'dynamodb' : 'memory',
     range,
+    country: country || null,
     window: { from: new Date(startMs).toISOString(), to: new Date(endMs).toISOString() },
     limit, scanned: total, capped,
     totals: { hits: total, humans, bots, confirmedHumans: confirmed, uniqueVisitors },
