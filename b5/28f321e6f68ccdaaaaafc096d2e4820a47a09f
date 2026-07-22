@@ -1,0 +1,21 @@
+public/index.html
+  s_896e0e381cf026::t_0da58b745562ac 12-15,17
+public/js/main.js
+  s_896e0e381cf026::t_fae3811bf6e30d 6-16,23-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b528f321e6f68ccdaaaaafc096d2e4820a47a09f",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
