@@ -3,13 +3,26 @@
 
 const $ = (sel) => document.querySelector(sel);
 
+// ── Diagramas Mermaid ───────────────────────────────────────────────────────
+// Solo se renderizan los diagramas de la pestaña visible: renderizar dentro
+// de un contenedor display:none produce "translate(undefined, NaN)".
+async function renderDiagrams(section) {
+  if (!window.mermaid) return; // aún cargando; el evento mermaid-ready reintenta
+  const pending = section.querySelectorAll('pre.mermaid:not([data-processed])');
+  if (pending.length) await window.mermaid.run({ nodes: pending });
+}
+
+window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
+
 // ── Pestañas ────────────────────────────────────────────────────────────────
 document.querySelectorAll('#tabs button').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#tabs button').forEach((b) => b.classList.remove('active'));
     document.querySelectorAll('section.tab').forEach((s) => s.classList.remove('active'));
     btn.classList.add('active');
-    $(`#tab-${btn.dataset.tab}`).classList.add('active');
+    const section = $(`#tab-${btn.dataset.tab}`);
+    section.classList.add('active');
+    renderDiagrams(section);
   });
 });
 
