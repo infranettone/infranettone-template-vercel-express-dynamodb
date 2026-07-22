@@ -11,10 +11,12 @@ Plantilla **productiva y totalmente funcional** para nuevas apps: un solo repo c
 estático, API Express, infraestructura como código (CloudFormation) y CI (GitHub Actions),
 desplegable **gratis en Vercel** y conectada a **DynamoDB en tu cuenta AWS**.
 
-La propia app desplegada es un **showcase autoexplicativo**: al entrar en la web ves la
-arquitectura con diagramas, el estado en vivo de todas las conexiones (con latencia real a
-DynamoDB), una demo CRUD contra la base de datos, la guía de despliegue paso a paso y la
-documentación de la API y los tests.
+La propia app desplegada es un **showcase autoexplicativo** y **multiidioma (inglés por defecto,
+español y mallorquí)**, con estas pestañas: **Arquitectura** (diagramas), **📡 Tráfico**
+(herramienta de monitorización e identificación de visitantes en vivo), **Conexiones** (estado real
+de DynamoDB con latencia), **Demo CRUD** contra la base de datos, **Despliegue** paso a paso,
+**🔎 SEO** (explicación didáctica) y **API & Tests**. Cada pestaña es enlazable por hash
+(`…/#trafico`), y el idioma elegido se recuerda en `localStorage`.
 
 ## Arquitectura
 
@@ -62,15 +64,22 @@ flowchart LR
 │       ├── statusService.js
 │       └── trafficService.js  # Captura, redacción de sensibles, bots, agregados
 ├── public/                  # Showcase (HTML + CSS + JS vanilla, diagramas Mermaid)
+│   ├── index.html           # Showcase multiidioma (claves data-i18n) + meta SEO/JSON-LD
+│   ├── js/main.js           # Pestañas, idioma, panel de estado, demo CRUD
+│   ├── js/i18n.js           # Diccionarios EN (en HTML) + ES + CA (mallorquí) + helper tr()
 │   ├── js/track.js          # Beacon de fingerprint (identificación de visitantes)
 │   ├── js/traffic.js        # Dashboard de tráfico (gráficos SVG)
-│   ├── robots.txt · sitemap.xml · og.svg   # SEO
+│   ├── styles/base.css      # Estilos (incluye el dashboard de tráfico)
+│   ├── favicon.svg
+│   └── robots.txt · sitemap.xml · og.svg   # SEO
 ├── infra/dynamodb.yml       # CloudFormation: tabla con TTL, PITR y DeletionPolicy: Retain
 ├── scripts/
 │   ├── setup-aws.sh         # Crea usuario IAM runtime (Vercel) acotado a la tabla
 │   ├── setup-github-secrets.sh  # Crea usuario IAM deploy y sube secretos con gh
 │   └── seed.js              # Registros de ejemplo
-├── tests/app.test.js        # node:test contra la app real (modo memoria, sin AWS)
+├── tests/
+│   ├── app.test.js          # node:test: health, status, CRUD, 400/404, frontend
+│   └── traffic.test.js      # node:test: redacción de sensibles, bots, beacon, agregados
 ├── .github/workflows/
 │   ├── ci.yml               # npm test en cada push/PR (sin secretos)
 │   └── deploy-infra.yml     # Despliega el stack cuando cambia infra/** o a demanda
@@ -210,11 +219,21 @@ lenguaje llano cómo funciona un buscador (crawl → index → rank) y qué hace
 
 ## Tests
 
-`npm test` usa el runner nativo de Node (`node --test`): levanta la app en un puerto efímero y
-recorre health, status, el CRUD completo y los errores 400/404, todo en modo memoria — idéntico
-en local y en CI.
+`npm test` usa el runner nativo de Node (`node --test`, cero dependencias), levanta la app real en
+un puerto efímero y corre **14 tests** en modo memoria — idéntico en local y en CI:
+
+- `tests/app.test.js` — health, status, CRUD completo, errores 400/404, y que el frontend se sirve.
+- `tests/traffic.test.js` — enmascarado de IP, parsing de User-Agent, clasificación de bots, flujo
+  del beacon, agregados del dashboard y, sobre todo, que **los valores sensibles nunca se filtran**
+  (ni en el evento almacenado ni en la vista pública redactada).
+
+> Nota: el modo memoria no ejercita las `UpdateExpression` de DynamoDB, así que errores de sintaxis
+> de Dynamo solo afloran en producción. Para probar contra DynamoDB de verdad, arranca DynamoDB
+> Local y exporta `DYNAMODB_ENDPOINT` + credenciales dummy.
 
 ## Cómo extender la plantilla
+
+**Añadir una entidad/servicio nuevo:**
 
 1. Añade el prefijo de tu entidad en `KEYS` (`src/config/dynamo.js`).
 2. Crea `src/services/tuEntidadService.js` (copia `itemsService.js`: patrón Dynamo + fallback).
@@ -222,3 +241,9 @@ en local y en CI.
 4. Añade tests en `tests/` — corren sin AWS.
 5. Si necesitas otra pieza de infra (S3, SQS…), añádela a `infra/`, el workflow la despliega, y
    amplía la política de `scripts/setup-aws.sh` con los permisos mínimos.
+
+**Añadir una pestaña o texto nuevo en el showcase:** escribe el texto en inglés en `index.html`
+con un atributo `data-i18n="mi.clave"` (o `data-i18n-placeholder`), y añade `mi.clave` a los
+diccionarios `es` y `ca` de `public/js/i18n.js`. El inglés vive en el HTML; los otros idiomas se
+aplican sobreescribiendo `innerHTML`. Las cadenas generadas desde JS usan `tr(lang, clave)` con las
+claves de `jsDefaults`.
