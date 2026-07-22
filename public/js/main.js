@@ -73,10 +73,78 @@ async function renderDiagrams(root) {
   if (!window.mermaid) return; // still loading; the mermaid-ready event retries
   const pending = [...root.querySelectorAll('pre.mermaid:not([data-processed])')]
     .filter((el) => el.offsetParent !== null);
-  if (pending.length) await window.mermaid.run({ nodes: pending });
+  if (!pending.length) return;
+  await window.mermaid.run({ nodes: pending });
+  // Make each rendered diagram clickable to open the zoom viewer.
+  pending.forEach((node) => {
+    if (node.dataset.zoomBound) return;
+    node.dataset.zoomBound = '1';
+    node.classList.add('zoomable');
+    node.addEventListener('click', () => openZoom(node.querySelector('svg')));
+  });
 }
 
 window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.active')));
+
+// ── Diagram zoom viewer (pan + wheel-zoom, no libraries) ─────────────────────
+let zoomEl = null;
+function buildZoom() {
+  const overlay = document.createElement('div');
+  overlay.id = 'zoom-modal';
+  overlay.className = 'zoom-modal hidden';
+  overlay.innerHTML = `
+    <div class="zoom-bar">
+      <button data-z="out" aria-label="Zoom out">−</button>
+      <button data-z="reset" aria-label="Reset zoom">⟲</button>
+      <button data-z="in" aria-label="Zoom in">＋</button>
+      <button data-z="close" aria-label="Close">✕</button>
+    </div>
+    <div class="zoom-stage"><div class="zoom-content"></div></div>`;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.zoom-stage');
+  const content = overlay.querySelector('.zoom-content');
+  const st = { scale: 1, tx: 0, ty: 0, drag: false, sx: 0, sy: 0 };
+  const apply = () => { content.style.transform = `translate(${st.tx}px,${st.ty}px) scale(${st.scale})`; };
+  const reset = () => { st.scale = 1; st.tx = 0; st.ty = 0; apply(); };
+  const zoomAt = (factor, cx, cy) => {
+    const rect = stage.getBoundingClientRect();
+    const ox = cx - rect.left - rect.width / 2;
+    const oy = cy - rect.top - rect.height / 2;
+    const ns = Math.min(Math.max(st.scale * factor, 0.3), 8);
+    const k = ns / st.scale;
+    st.tx = ox - (ox - st.tx) * k;
+    st.ty = oy - (oy - st.ty) * k;
+    st.scale = ns;
+    apply();
+  };
+  stage.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.15 : 0.87, e.clientX, e.clientY); }, { passive: false });
+  stage.addEventListener('mousedown', (e) => { st.drag = true; st.sx = e.clientX - st.tx; st.sy = e.clientY - st.ty; stage.classList.add('grabbing'); });
+  window.addEventListener('mousemove', (e) => { if (!st.drag) return; st.tx = e.clientX - st.sx; st.ty = e.clientY - st.sy; apply(); });
+  window.addEventListener('mouseup', () => { st.drag = false; stage.classList.remove('grabbing'); });
+  overlay.querySelector('.zoom-bar').addEventListener('click', (e) => {
+    const z = e.target.dataset.z;
+    if (z === 'in') zoomAt(1.3, innerWidth / 2, innerHeight / 2);
+    else if (z === 'out') zoomAt(0.77, innerWidth / 2, innerHeight / 2);
+    else if (z === 'reset') reset();
+    else if (z === 'close') closeZoom();
+  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeZoom(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeZoom(); });
+  return { overlay, content, reset };
+}
+function openZoom(svg) {
+  if (!svg) return;
+  if (!zoomEl) zoomEl = buildZoom();
+  zoomEl.content.innerHTML = '';
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute('style');
+  clone.style.maxWidth = 'none';
+  zoomEl.content.appendChild(clone);
+  zoomEl.reset();
+  zoomEl.overlay.classList.remove('hidden');
+}
+function closeZoom() { zoomEl?.overlay.classList.add('hidden'); }
 
 // ── Collapsible sections ─────────────────────────────────────────────────────
 // Every top-level h2/h3 in a tab becomes a toggle for the content beneath it

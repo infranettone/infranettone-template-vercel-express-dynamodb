@@ -28,9 +28,11 @@ let autoTimer = null;
 
 // Persist the toolbar choices in localStorage (like the language). Country and
 // per-table sort/page are intentionally per-session, not persisted.
+const PAGE_SIZES = [10, 25, 50, 100];
 function savePrefs() {
   localStorage.setItem('vt-traffic', JSON.stringify({
     range: ui.range, from: ui.from, to: ui.to, limit: ui.limit, auto: ui.auto, autoSecs: ui.autoSecs,
+    feedSize: ui.feed.size, visitorsSize: ui.visitors.size,
   }));
 }
 function loadPrefs() {
@@ -42,6 +44,8 @@ function loadPrefs() {
     if (LIMITS.includes(p.limit)) ui.limit = p.limit;
     if (typeof p.auto === 'boolean') ui.auto = p.auto;
     if (Number(p.autoSecs) >= 3) ui.autoSecs = Math.min(Number(p.autoSecs), 3600);
+    if (PAGE_SIZES.includes(p.feedSize)) ui.feed.size = p.feedSize;
+    if (PAGE_SIZES.includes(p.visitorsSize)) ui.visitors.size = p.visitorsSize;
   } catch { /* ignore corrupt prefs */ }
 }
 function resetPrefs() {
@@ -396,7 +400,7 @@ function renderTable(box, cols, rows, state, rerender) {
     else { s.col = c; s.dir = 'asc'; }
     state.page = 1; rerender();
   }));
-  box.querySelector('.tbl-size').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; rerender(); });
+  box.querySelector('.tbl-size').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; savePrefs(); rerender(); });
   box.querySelector('.tbl-first').addEventListener('click', () => { state.page = 1; rerender(); });
   box.querySelector('.tbl-prev').addEventListener('click', () => { state.page--; rerender(); });
   box.querySelector('.tbl-next').addEventListener('click', () => { state.page++; rerender(); });
