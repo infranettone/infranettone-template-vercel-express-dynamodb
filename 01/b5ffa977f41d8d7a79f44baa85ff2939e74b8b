@@ -1,0 +1,88 @@
+public/js/track.js
+  s_896e0e381cf026::t_0ad719682a77e6 1,3-5,7-9,12,20,27-28,80,82
+infra/dynamodb.yml
+  s_896e0e381cf026::t_ff227a429616ce 2,8,13,18-19,31-32,41,46
+.github/workflows/deploy-infra.yml
+  s_896e0e381cf026::t_15cd7259f1617a 3-4,18
+scripts/setup-aws.sh
+  s_896e0e381cf026::t_c7cd827ad64430 3-5,7-8,11,13-14,27,29-34,45,50,57,59,61,67,70,72,75,77,80,104,106,113,121,128
+tests/app.test.js
+  s_896e0e381cf026::t_d50985e4f1c923 1-2,9,26,32,40-41,45,50,52,56,64,73-74,78
+  s_896e0e381cf026::t_3511abbbc626ae 36
+public/js/main.js
+  s_896e0e381cf026::t_e5e6bd9503c84e 1-2,9-11,37,67-69,71,78,88,99,145,203,207,211
+public/js/i18n.js
+  s_896e0e381cf026::t_31dc7755643860 1-3,5-6,14,31,204,463-464,469
+src/server.js
+  s_896e0e381cf026::t_0a1c5c7a4c3812 1,3-5
+tests/traffic.test.js
+  s_896e0e381cf026::t_8d214f706444b2 1-3,15,17,22,32,40,51,55,60,64,69,79,90,100,104,109
+scripts/setup-github-secrets.sh
+  s_896e0e381cf026::t_bf2d06f41304a2 3-7,9,27-28,32,37,41,69,78
+src/routes/traffic.js
+  s_896e0e381cf026::t_4126cec10c27fd 6,13,20-21
+  s_896e0e381cf026::t_ac8dba4f8c09cf 32
+src/services/trafficService.js
+  s_896e0e381cf026::t_71aa54635c1f39 2,5-7,9-13,15-17,19-21,28,31,35,42
+  s_896e0e381cf026::t_59729f237e35c0 292
+  s_896e0e381cf026::t_b1de8f57198b75 454
+  s_896e0e381cf026::t_1cfe02f340438d 357,365,367
+  s_896e0e381cf026::t_e0f759b44b7ff8 256
+  s_896e0e381cf026::t_c9fb9a57da4abe 268
+  s_896e0e381cf026::t_7982b5c2125b49 317
+  s_896e0e381cf026::t_05d00295decd7a 56,62-63
+  s_896e0e381cf026::t_1d4e9ffec6f373 74
+  s_896e0e381cf026::t_9a87f38616548f 243,245
+  s_896e0e381cf026::t_2cd38513cb7d78 127,136,156,161
+  s_896e0e381cf026::t_af996fd5721283 213-214
+  s_896e0e381cf026::t_e05003e8947db1 99-101,107-111,114
+  s_896e0e381cf026::t_5abdedeb776d64 177
+.env.example
+  s_896e0e381cf026::t_e2e02df4f44c0c 1-2,4-5,12-13,16,19-22
+src/services/statusService.js
+  s_896e0e381cf026::t_1f5353011e6aa9 1,3-5,12,27,42,53
+public/index.html
+  s_896e0e381cf026::t_0a39f8f883247a 31
+src/app.js
+  s_896e0e381cf026::t_1cf49c1e7cc477 14-17,26-28,35-36,43,47
+package.json
+  s_896e0e381cf026::t_e675aa22fa2428 4
+src/config/dynamo.js
+  s_896e0e381cf026::t_242c780c1f16fd 1,3-5,7-9,17,20-21,30,34
+api/index.js
+  s_896e0e381cf026::t_bb9aec432b60a1 1,3-6
+public/robots.txt
+  s_896e0e381cf026::t_db49855b0e92a7 2,6
+scripts/seed.js
+  s_896e0e381cf026::t_8a3e8949c4b478 1-2,10-12,18,21
+src/routes/items.js
+  s_896e0e381cf026::t_e2f142ca0517cf 22
+public/styles/base.css
+  s_896e0e381cf026::t_0a39f8f883247a 26,138,155,164,180
+README.md
+  s_896e0e381cf026::t_951f1ddfb8cdec 1,4,6-7,10-12,14-19,21,25-26,28-29,32,39,43,45-52,54,58-62,65-72,75,77-79,82,84-87,90,92,96-107,109,111,113,115-116,118,120,122-123,126-128,130,135-136,139-140,144-145,148-149,152-153,158,160,164-197,201-204,208,210-218,222-223,225-228,230-232,234,236,238-243,245-248
+.github/workflows/ci.yml
+  s_896e0e381cf026::t_15cd7259f1617a 3-4
+src/routes/status.js
+  s_896e0e381cf026::t_35626d901daf8a 6,9
+public/js/traffic.js
+  s_896e0e381cf026::t_5ac883edf7f64d 1-2,4-6,14,17,41,80,89,101,106,131,148,175,198,233,235
+src/services/itemsService.js
+  s_896e0e381cf026::t_593c8b4a25da6c 1,3-5,7-9,40,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "01b5ffa977f41d8d7a79f44baa85ff2939e74b8b",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
