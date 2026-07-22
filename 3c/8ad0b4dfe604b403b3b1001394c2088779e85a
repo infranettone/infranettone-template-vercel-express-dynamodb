@@ -1,0 +1,23 @@
+README.md
+  s_896e0e381cf026::t_3df896a32c73f8 222-232,236-237,244-249
+  s_896e0e381cf026::t_3e39aef65af40e 14-19
+  s_896e0e381cf026::t_f0950093d01767 67-69,72-74,80-82
+.env.example
+  s_896e0e381cf026::t_c9a085b744bdb6 18-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3c8ad0b4dfe604b403b3b1001394c2088779e85a",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
