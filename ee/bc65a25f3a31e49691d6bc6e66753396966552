@@ -1,0 +1,26 @@
+public/styles/base.css
+  s_896e0e381cf026::t_2853d49c79418c 108-113,115-119,121-126,128,130-141
+public/index.html
+  s_896e0e381cf026::t_ef0357a7639c8c 93-97
+public/js/main.js
+  s_896e0e381cf026::t_61af616655fee8 81,87-98,101-104,111,113-116,119-194,196-197,199,202-203,205-209,211-216,218
+public/js/i18n.js
+  s_896e0e381cf026::t_74f7d22a7b0fe4 50
+  s_896e0e381cf026::t_35be8a9c818435 290
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "eebc65a25f3a31e49691d6bc6e66753396966552",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
