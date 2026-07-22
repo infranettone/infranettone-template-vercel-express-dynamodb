@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plantilla Vercel + Express + DynamoDB — Showcase</title>
+  <link rel="stylesheet" href="/styles/base.css" />
+  <script type="module" src="/js/main.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    window.mermaid = mermaid;
+  </script>
+</head>
+<body>
+  <header>
+    <h1>🧩 Plantilla · Vercel + Express + DynamoDB</h1>
+    <p class="subtitle">
+      Showcase autoexplicativo: qué contiene la plantilla, cómo está conectado todo,
+      cómo se despliega y una demo funcional contra la base de datos.
+    </p>
+    <div id="mode-badge" class="badge">cargando…</div>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="arquitectura" class="active">🏗️ Arquitectura</button>
+    <button data-tab="conexiones">🔌 Conexiones (en vivo)</button>
+    <button data-tab="demo">🧪 Demo CRUD</button>
+    <button data-tab="despliegue">🚀 Despliegue</button>
+    <button data-tab="api">📚 API &amp; Tests</button>
+  </nav>
+
+  <!-- ═══════════════ ARQUITECTURA ═══════════════ -->
+  <section id="tab-arquitectura" class="tab active">
+    <h2>Visión general</h2>
+    <p>
+      Un único repo contiene <strong>frontend estático</strong>, <strong>API Express</strong> e
+      <strong>infraestructura como código</strong>. Vercel sirve ambos (frontend + API) como una
+      función serverless gratuita; los datos viven en una tabla DynamoDB de AWS en modo
+      <em>pay-per-request</em> (coste 0 sin tráfico). GitHub Actions despliega la infraestructura.
+    </p>
+    <div class="card">
+      <pre class="mermaid">
+flowchart LR
+  subgraph Navegador
+    UI[Showcase estático<br/>public/]
+  end
+  subgraph Vercel["Vercel (gratis)"]
+    FN["Función serverless<br/>src/server.js → Express"]
+  end
+  subgraph AWS["AWS (eu-west-1)"]
+    DDB[("DynamoDB<br/>tabla template-app<br/>pk / sk")]
+  end
+  subgraph GitHub
+    GHA[["Actions:<br/>ci.yml + deploy-infra.yml"]]
+    CFN["CloudFormation<br/>infra/dynamodb.yml"]
+  end
+  UI -- "fetch /api/*" --> FN
+  FN -- "AWS SDK v3<br/>(credenciales IAM acotadas)" --> DDB
+  GHA -- "aws cloudformation deploy" --> CFN
+  CFN -- "crea/actualiza" --> DDB
+  GHA -. "push a main<br/>ejecuta tests" .-> FN
+      </pre>
+    </div>
+
+    <h2>Flujo de una petición (añadir un registro)</h2>
+    <div class="card">
+      <pre class="mermaid">
+sequenceDiagram
+  participant B as Navegador
+  participant V as Vercel (Express)
+  participant S as itemsService
+  participant D as DynamoDB
+  B->>V: POST /api/items {text}
+  V->>S: createItem(text)
+  alt credenciales AWS configuradas
+    S->>D: PutCommand {pk: "ITEM", sk: fecha#id, ...}
+    D-->>S: OK
+  else sin credenciales (modo memoria)
+    S->>S: push al array en RAM
+  end
+  S-->>V: item {id, text, createdAt}
+  V-->>B: 201 Created + JSON
+      </pre>
+    </div>
+
+    <h2>Modelo de datos: single-table design</h2>
+    <p>
+      Toda la app usa <strong>una sola tabla</strong>. El prefijo de <code>pk</code> discrimina la
+      entidad; añadir una entidad nueva no requiere tocar la infraestructura, solo un servicio nuevo.
+    </p>
+    <div class="card">
+      <table>
+        <thead><tr><th>pk</th><th>sk</th><th>atributos</th><th>uso</th></tr></thead>
+        <tbody>
+          <tr><td><code>ITEM</code></td><td><code>&lt;isoDate&gt;#&lt;uuid&gt;</code></td><td>id, text, createdAt</td><td>Registros de la demo (orden cronológico gratis vía Query)</td></tr>
+          <tr><td><em>TU_ENTIDAD</em></td><td><em>lo que necesites</em></td><td>…</td><td>Añade el prefijo en <code>src/config/dynamo.js</code> y crea un servicio</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Estructura del repositorio</h2>
+    <div class="card">
+      <pre class="mermaid">
+flowchart TD
+  R[repo] --> SRC[src/ · backend Express]
+  R --> PUB[public/ · este showcase]
+  R --> INF[infra/dynamodb.yml · CloudFormation]
+  R --> SCR[scripts/ · setup-aws.sh, seed.js]
+  R --> GHW[.github/workflows/ · ci.yml, deploy-infra.yml]
+  R --> TST[tests/ · node:test, sin AWS]
+  SRC --> A[app.js · middleware + rutas]
+  SRC --> C[config/dynamo.js · cliente único + prefijos pk]
+  SRC --> RT[routes/ · items, status]
+  SRC --> SV[services/ · lógica + fallback memoria]
+      </pre>
+    </div>
+
+    <h2>Decisiones de diseño</h2>
+    <ul class="decisions">
+      <li><strong>Un solo deploy</strong>: el frontend lo sirve Express (<code>express.static</code>), así que no hay CORS en producción ni dos pipelines.</li>
+      <li><strong>Fallback sin AWS</strong>: sin credenciales la app funciona en memoria. Puedes desplegar en Vercel <em>antes</em> de tener la infra y verlo todo funcionando.</li>
+      <li><strong>Credenciales de mínimo privilegio</strong>: el usuario IAM de Vercel solo puede leer/escribir <em>esta</em> tabla; el del pipeline solo tocar <em>este</em> stack.</li>
+      <li><strong>Infra idempotente</strong>: CloudFormation con <code>DeletionPolicy: Retain</code> — borrar el stack jamás borra datos.</li>
+      <li><strong>Coste 0 en reposo</strong>: Vercel Hobby + DynamoDB on-demand + GitHub Actions gratis en repos públicos.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════ CONEXIONES ═══════════════ -->
+  <section id="tab-conexiones" class="tab">
+    <h2>Estado de conexiones en tiempo real</h2>
+    <p>Datos servidos por <code>GET /api/status</code>: el backend comprueba sus variables de entorno y hace un <code>DescribeTable</code> real contra DynamoDB.</p>
+    <button id="refresh-status" class="btn">↻ Refrescar</button>
+    <div id="status-panel" class="grid">cargando…</div>
+    <h3>Respuesta cruda</h3>
+    <pre id="status-raw" class="card code">…</pre>
+  </section>
+
+  <!-- ═══════════════ DEMO CRUD ═══════════════ -->
+  <section id="tab-demo" class="tab">
+    <h2>Demo: registros contra la base de datos</h2>
+    <p>
+      Cada acción llama a la API real (<code>/api/items</code>). Si el estado dice
+      <strong>dynamodb</strong>, esto escribe en tu tabla de AWS; si dice <strong>memoria</strong>,
+      escribe en la RAM del servidor. El código es idéntico en ambos casos.
+    </p>
+    <form id="add-form" class="card row">
+      <input id="add-text" type="text" placeholder="Texto del nuevo registro…" maxlength="500" required />
+      <button type="submit" class="btn primary">＋ Añadir registro</button>
+    </form>
+    <div id="items-list" class="card">cargando…</div>
+    <p class="hint">Consejo: abre esta página en dos pestañas y añade un registro en una; refresca la otra para ver la persistencia compartida.</p>
+  </section>
+
+  <!-- ═══════════════ DESPLIEGUE ═══════════════ -->
+  <section id="tab-despliegue" class="tab">
+    <h2>Pipeline de despliegue</h2>
+    <div class="card">
+      <pre class="mermaid">
+flowchart LR
+  DEV[git push a main] --> CI[GitHub Actions: ci.yml<br/>npm ci + npm test]
+  DEV --> VC[Vercel: build + deploy automático]
+  DEV -- "si cambia infra/**" --> INF[GitHub Actions: deploy-infra.yml<br/>cloudformation deploy]
+  INF --> TBL[(Tabla DynamoDB)]
+  VC --> PROD[App en producción]
+  TBL -. "credenciales en env vars" .-> PROD
+      </pre>
+    </div>
+
+    <h2>Pasos, en orden</h2>
+    <ol class="steps">
+      <li>
+        <strong>Probar en local (0 dependencias externas)</strong>
+        <pre class="code">npm install
+npm test        # 6 tests, modo memoria
+npm run dev     # http://localhost:3000</pre>
+      </li>
+      <li>
+        <strong>Subir a GitHub</strong> — crea el repo <em>manualmente</em> si no existe
+        (<a href="https://github.com/new" target="_blank">github.com/new</a> o
+        <code>gh repo create usuario/mi-app --public --source . --push</code>) y haz push.
+        El workflow <code>ci.yml</code> ya pasa en verde sin ningún secreto.
+        <p class="hint">💡 Puedes marcarlo como <strong>Template repository</strong> (Settings →
+        General): los repos generados con "Use this template" copian todo, incluidos los workflows
+        de CI, que funcionan igual. Lo único que no se hereda son los <strong>secretos</strong>:
+        en cada repo generado repite el paso de <code>setup-github-secrets.sh</code> y cambia
+        <code>STACK_NAME</code>/<code>TABLE_NAME</code> en <code>deploy-infra.yml</code> si
+        quieres tabla propia por app.</p>
+      </li>
+      <li>
+        <strong>Desplegar en Vercel (aún sin AWS)</strong> — importa el repo en
+        <a href="https://vercel.com/new" target="_blank">vercel.com/new</a>. Detecta
+        <code>vercel.json</code> y publica. La app funciona ya, en modo memoria.
+      </li>
+      <li>
+        <strong>Crear la infraestructura AWS</strong> — dos opciones:
+        <pre class="code"># A) Por pipeline (recomendado): sube los secretos y lanza el workflow
+./scripts/setup-github-secrets.sh --profile miperfil --repo usuario/repo
+gh workflow run deploy-infra.yml
+
+# B) A mano desde tu máquina
+aws cloudformation deploy --template-file infra/dynamodb.yml \
+  --stack-name template-app --profile miperfil --region eu-west-1</pre>
+      </li>
+      <li>
+        <strong>Crear el usuario IAM de la app y conectar Vercel</strong>
+        <pre class="code">./scripts/setup-aws.sh --profile miperfil
+# Pega las 4 variables que imprime en Vercel → Settings → Environment Variables
+# y redepliega. La pestaña "Conexiones" pasará a verde.</pre>
+      </li>
+      <li>
+        <strong>Sembrar datos de ejemplo (opcional)</strong>
+        <pre class="code">cp .env.example .env   # pega ahí las mismas credenciales
+npm run seed</pre>
+      </li>
+    </ol>
+
+    <h2>Variables de entorno</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Variable</th><th>Dónde</th><th>Para qué</th></tr></thead>
+        <tbody>
+          <tr><td><code>AWS_REGION</code></td><td>Vercel + .env</td><td>Región de la tabla (eu-west-1)</td></tr>
+          <tr><td><code>DYNAMODB_TABLE</code></td><td>Vercel + .env</td><td>Nombre de la tabla</td></tr>
+          <tr><td><code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code></td><td>Vercel + .env</td><td>Usuario IAM acotado a la tabla (setup-aws.sh)</td></tr>
+          <tr><td><code>CORS_ORIGINS</code></td><td>opcional</td><td>Solo si otra web llama a esta API</td></tr>
+          <tr><td><code>AWS_ACCESS_KEY_ID/SECRET</code> (secrets de GitHub)</td><td>repo</td><td>Usuario deploy del pipeline (setup-github-secrets.sh)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════ API & TESTS ═══════════════ -->
+  <section id="tab-api" class="tab">
+    <h2>Endpoints</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Método</th><th>Ruta</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>GET</td><td><code>/api/status/health</code></td><td>Health check instantáneo (para monitores)</td></tr>
+          <tr><td>GET</td><td><code>/api/status</code></td><td>Estado completo: env, runtime, DynamoDB con latencia</td></tr>
+          <tr><td>GET</td><td><code>/api/items</code></td><td>Lista los registros (máx. 100, más recientes primero)</td></tr>
+          <tr><td>POST</td><td><code>/api/items</code></td><td>Crea un registro — body <code>{"text": "..."}</code></td></tr>
+          <tr><td>DELETE</td><td><code>/api/items/:id</code></td><td>Borra un registro</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Pruébalo con curl</h2>
+    <pre class="card code" id="curl-examples">curl -s BASE/api/status | jq
+curl -s -X POST BASE/api/items -H 'content-type: application/json' -d '{"text":"hola desde curl"}'
+curl -s BASE/api/items | jq
+curl -s -X DELETE BASE/api/items/&lt;id&gt; -i</pre>
+
+    <h2>Tests automáticos</h2>
+    <p>
+      <code>npm test</code> ejecuta <code>tests/app.test.js</code> con el runner nativo de Node
+      (<code>node --test</code>, cero dependencias): levanta la app real en un puerto efímero y
+      recorre la API completa en modo memoria — health, status, CRUD entero, validación 400 y 404,
+      y que el frontend se sirve. GitHub Actions (<code>ci.yml</code>) lo ejecuta en cada push y PR.
+    </p>
+    <div class="card">
+      <pre class="mermaid">
+flowchart LR
+  T[node --test] --> L[app.listen puerto efímero]
+  L --> H[health + status]
+  L --> C[POST → GET → DELETE items]
+  L --> E[errores 400 / 404]
+  L --> F[frontend estático]
+      </pre>
+    </div>
+  </section>
+
+  <footer>
+    <p>Plantilla generada para <code>templates-ia</code> · Express · DynamoDB · Vercel · GitHub Actions</p>
+  </footer>
+</body>
+</html>

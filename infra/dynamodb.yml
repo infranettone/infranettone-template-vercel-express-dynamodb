@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Tabla DynamoDB unica (single-table design) que respalda la plantilla Vercel + Express.
+
+Parameters:
+  TableName:
+    Type: String
+    Default: template-app
+    Description: Nombre de la tabla DynamoDB.
+
+Resources:
+  AppTable:
+    Type: AWS::DynamoDB::Table
+    # Retain: borrar el stack nunca borra los datos.
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Ref TableName
+      # Single-table design: cada entidad se discrimina por el prefijo de pk
+      # (ITEM, ...). PAY_PER_REQUEST = coste 0 sin trafico (free tier).
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      # Las entidades que quieran caducar solas llevan un atributo `ttl`
+      # (epoch en segundos); el resto simplemente lo omite.
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+Outputs:
+  TableName:
+    Description: Nombre de la tabla (ponlo como DYNAMODB_TABLE en Vercel).
+    Value: !Ref AppTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TableName'
+  TableArn:
+    Description: ARN de la tabla (para acotar la politica IAM).
+    Value: !GetAtt AppTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-TableArn'
