@@ -1,0 +1,14 @@
+public/index.html
+  h_bdd5039b181e99 275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7ddc340cec217e173ecca557bd88e4f4246523ba",
+  "prompts": {},
+  "humans": {
+    "h_bdd5039b181e99": {
+      "author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
