@@ -1,0 +1,21 @@
+README.md
+  s_896e0e381cf026::t_7e071052973bb3 3-5
+.gitignore
+  s_896e0e381cf026::t_86a3ccb02f13b5 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "9906bf54772db31ed399293e0dce83a1f46cfecd",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
