@@ -1,0 +1,19 @@
+src/services/trafficService.js
+  s_896e0e381cf026::t_743320c968a64e 214-219,221-222,224-229,232,238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "52da76a8c4b8370988b42e6769cb13e9ab6f96e5",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
