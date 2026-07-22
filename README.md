@@ -1,5 +1,8 @@
 # 🧩 Plantilla: Vercel + Express + DynamoDB
 
+[![CI](https://github.com/infranettone/infranettone-template-vercel-express-dynamodb/actions/workflows/ci.yml/badge.svg)](https://github.com/infranettone/infranettone-template-vercel-express-dynamodb/actions/workflows/ci.yml)
+**Demo en producción:** https://infranettone-template-vercel-express-dynamodb.vercel.app
+
 Plantilla **productiva y totalmente funcional** para nuevas apps: un solo repo con frontend
 estático, API Express, infraestructura como código (CloudFormation) y CI (GitHub Actions),
 desplegable **gratis en Vercel** y conectada a **DynamoDB en tu cuenta AWS**.
