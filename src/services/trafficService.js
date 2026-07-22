@@ -211,24 +211,31 @@ async function upsertVisitor(ev, client) {
     });
     return;
   }
-  const names = { '#h': 'hits', '#ls': 'lastSeen', '#hc': 'humanConfirmed',
-    '#c': 'country', '#d': 'device', '#b': 'browser', '#o': 'os', '#fs': 'firstSeen' };
-  const values = {
-    ':one': 1, ':ts': ev.ts, ':beacon': ev.beacon,
-    ':c': ev.country, ':d': ev.device, ':b': ev.browser, ':o': ev.os, ':false': false,
+  // DynamoDB no admite operadores booleanos (OR) en UpdateExpression, así que
+  // la parte de "humanConfirmed" se construye condicionalmente en JS.
+  const names = {
+    '#h': 'hits', '#ls': 'lastSeen', '#fs': 'firstSeen', '#hc': 'humanConfirmed', '#fp': 'fp',
+    '#c': 'country', '#d': 'device', '#b': 'browser', '#o': 'os', '#ib': 'isBot',
   };
-  let expr = 'SET #ls = :ts, #c = :c, #d = :d, #b = :b, #o = :o, '
-    + '#hc = if_not_exists(#hc, :false) OR :beacon, #fs = if_not_exists(#fs, :ts) '
-    + 'ADD #h :one';
+  const values = {
+    ':one': 1, ':ts': ev.ts, ':fp': fp,
+    ':c': ev.country, ':d': ev.device, ':b': ev.browser, ':o': ev.os, ':ib': ev.isBot && !ev.beacon,
+  };
+  const sets = [
+    '#ls = :ts', '#fs = if_not_exists(#fs, :ts)', '#fp = :fp',
+    '#c = :c', '#d = :d', '#b = :b', '#o = :o', '#ib = :ib',
+  ];
+  if (ev.beacon) { sets.push('#hc = :true'); values[':true'] = true; }
+  else { sets.push('#hc = if_not_exists(#hc, :false)'); values[':false'] = false; }
   if (client) {
     Object.assign(names, { '#sc': 'screen', '#tz': 'timezone', '#lg': 'languages', '#cr': 'cores', '#mm': 'memory' });
+    sets.push('#sc = :sc', '#tz = :tz', '#lg = :lg', '#cr = :cr', '#mm = :mm');
     Object.assign(values, { ':sc': client.screen || '', ':tz': client.timezone || '', ':lg': client.languages || '', ':cr': client.cores || 0, ':mm': client.memory || 0 });
-    expr = expr.replace('ADD', ', #sc = :sc, #tz = :tz, #lg = :lg, #cr = :cr, #mm = :mm ADD');
   }
   await getDocClient().send(new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { pk: KEYS.VISITOR, sk: fp },
-    UpdateExpression: expr,
+    UpdateExpression: 'SET ' + sets.join(', ') + ' ADD #h :one',
     ExpressionAttributeNames: names,
     ExpressionAttributeValues: values,
   }));
