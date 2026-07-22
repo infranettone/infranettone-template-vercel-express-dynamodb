@@ -1,0 +1,24 @@
+api/index.js
+  s_896e0e381cf026::t_0554472f7f8475 1-8
+vercel.json
+  s_896e0e381cf026::t_5908fbf931bf9e 2-3
+README.md
+  s_896e0e381cf026::t_1f2b6c1276e36c 156-158
+  s_896e0e381cf026::t_4678aec8818e23 71-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "da77c8665db591e70f25f774161a91a30b49a387",
+  "prompts": {},
+  "sessions": {
+    "s_896e0e381cf026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b13252c-cf1a-4a63-a9f4-7aca767e46bf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
