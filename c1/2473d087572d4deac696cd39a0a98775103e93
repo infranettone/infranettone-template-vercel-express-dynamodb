@@ -1,0 +1,19 @@
+public/js/main.js
+  s_2818e9a4bf67e6::t_9813da287d2ef6 120-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c12473d087572d4deac696cd39a0a98775103e93",
+  "prompts": {},
+  "sessions": {
+    "s_2818e9a4bf67e6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5c03521f-9483-49e3-b571-a6c47a10a08c",
+        "model": "glm-5.2"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
