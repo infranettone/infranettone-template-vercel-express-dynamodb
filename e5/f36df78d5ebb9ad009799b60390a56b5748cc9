@@ -1,0 +1,20 @@
+public/styles/base.css
+  s_2818e9a4bf67e6::t_5f7ec8d16b3a94 119
+  s_2818e9a4bf67e6::t_bb3e5d889c55ea 141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e5f36df78d5ebb9ad009799b60390a56b5748cc9",
+  "prompts": {},
+  "sessions": {
+    "s_2818e9a4bf67e6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5c03521f-9483-49e3-b571-a6c47a10a08c",
+        "model": "glm-5.2"
+      },
+      "human_author": "Raúl Adamuz <raul.adamuzcano@plexus.es>"
+    }
+  }
+}
