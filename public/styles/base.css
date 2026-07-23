@@ -116,7 +116,7 @@ pre.mermaid.mmd-stage.grabbing { cursor: grabbing; }
 pre.mermaid.mmd-stage.select-mode { cursor: text; user-select: text; }
 pre.mermaid.mmd-stage.select-mode svg,
 pre.mermaid.mmd-stage.select-mode svg * { user-select: text; }
-pre.mermaid.mmd-stage svg { will-change: transform; }
+pre.mermaid.mmd-stage svg { will-change: transform; flex: none; }
 
 /* Toolbar shared by inline + fullscreen viewers */
 .mmd-bar { display: flex; gap: .3rem; }
@@ -138,7 +138,7 @@ pre.mermaid:hover .mmd-bar { opacity: 1; }
 .mmd-fullstage.grabbing { cursor: grabbing; }
 .mmd-fullstage.select-mode { cursor: text; user-select: text; }
 .mmd-fullstage.select-mode svg, .mmd-fullstage.select-mode svg * { user-select: text; }
-.mmd-fullcontent { transform-origin: center center; will-change: transform; }
+.mmd-fullcontent { transform-origin: center center; will-change: transform; flex: none; }
 
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--border); }
