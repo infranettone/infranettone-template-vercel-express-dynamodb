@@ -117,6 +117,10 @@ function makePanZoom(stage, getContent) {
     const { w, h } = baseSize(c);
     c.style.transformOrigin = 'center center';
     c.style.transform = `translate(${st.tx}px,${st.ty}px)`;
+    // mermaid sets max-width/max-height inline; clear them so our px width/height
+    // actually take effect (otherwise the SVG is capped and zoom just shifts it).
+    c.style.maxWidth = 'none';
+    c.style.maxHeight = 'none';
     c.style.width = (w * st.scale) + 'px';
     c.style.height = (h * st.scale) + 'px';
   };
