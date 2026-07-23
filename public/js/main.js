@@ -92,11 +92,35 @@ window.addEventListener('mermaid-ready', () => renderDiagrams($('section.tab.act
 // overlay — no libraries.
 function makePanZoom(stage, getContent) {
   const st = { scale: 1, tx: 0, ty: 0, drag: false, sx: 0, sy: 0, mode: 'pan' };
+  // Zoom by resizing the SVG (vector re-rasterization → crisp at any scale)
+  // instead of CSS transform: scale(). transform: scale() blurs here because
+  // will-change: transform promotes the SVG to a compositor layer rasterized at
+  // its base size, which the compositor then upscales as a bitmap. Resizing
+  // width/height re-rasterizes the vector content at the new resolution. Pan
+  // stays a cheap translate (never blurs). The SVG keeps its viewBox, so
+  // resizing renders sharp; a viewBox is synthesized if mermaid omitted one.
+  const baseSize = (c) => {
+    if (c._mmdBase) return c._mmdBase;
+    const r = c.getBoundingClientRect();
+    const w = r.width || parseFloat(c.getAttribute('width')) || 300;
+    const h = r.height || parseFloat(c.getAttribute('height')) || 200;
+    if (!c.getAttribute('viewBox')) {
+      c.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      c.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    }
+    c._mmdBase = { w, h };
+    return c._mmdBase;
+  };
   const apply = () => {
     const c = getContent();
-    if (c) { c.style.transformOrigin = 'center center'; c.style.transform = `translate(${st.tx}px,${st.ty}px) scale(${st.scale})`; }
+    if (!c) return;
+    const { w, h } = baseSize(c);
+    c.style.transformOrigin = 'center center';
+    c.style.transform = `translate(${st.tx}px,${st.ty}px)`;
+    c.style.width = (w * st.scale) + 'px';
+    c.style.height = (h * st.scale) + 'px';
   };
-  const reset = () => { st.scale = 1; st.tx = 0; st.ty = 0; apply(); };
+  const reset = () => { st.scale = 1; st.tx = 0; st.ty = 0; const c = getContent(); if (c) c._mmdBase = null; apply(); };
   const zoomAt = (factor, cx, cy) => {
     const r = stage.getBoundingClientRect();
     const ox = cx - r.left - r.width / 2;
@@ -203,18 +227,19 @@ function openFullscreen(pre) {
   fsState = { svg, pre, style: svg.getAttribute('style') || '' };
   svg.setAttribute('style', 'width:84vw;height:auto;max-width:none;max-height:none;display:block;');
   fsEl.content.appendChild(svg);
+  fsEl.overlay.classList.remove('hidden');   // show before reset so the SVG can be measured
   fsEl.pz.setMode('pan');
   fsEl.modeBtn.textContent = MODE_ICON.pan;
   fsEl.pz.reset();
-  fsEl.overlay.classList.remove('hidden');
 }
 function closeFullscreen() {
-  if (fsState) {
-    fsState.svg.setAttribute('style', fsState.style);
-    fsState.pre.appendChild(fsState.svg);
-    fsState.pre._pz?.reset();
-    fsState = null;
-  }
+  if (!fsState) { fsEl?.overlay.classList.add('hidden'); return; }
+  const { svg, pre, style } = fsState;
+  fsState = null;                  // clear first so inline getContent() returns the svg
+  svg.setAttribute('style', style);
+  pre.appendChild(svg);
+  svg._mmdBase = null;             // fullscreen cached a 84vw base; re-measure inline
+  pre._pz?.apply();                // restore the user's inline pan/zoom, crisp
   fsEl?.overlay.classList.add('hidden');
 }
 
